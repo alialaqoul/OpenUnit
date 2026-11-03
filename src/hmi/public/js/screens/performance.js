@@ -89,16 +89,16 @@ function side() {
   return [
     panel(
       'Unit heat rate',
-      `<div class="kv">${kv('Net unit heat rate (5010)', 'PLANT:PERF_NUHR', { dp: 0 })}${kv('Target (5030)', 'PLANT:PERF_NUHR_TGT', { dp: 0 })}${kv('Gross unit heat rate', 'PLANT:PERF_GUHR', { dp: 0 })}${kv('Turbine cycle heat rate (2100)', 'PLANT:PERF_TCHR', { dp: 0 })}${kv('Carnot limit (5200)', 'PLANT:PERF_CARNOT_HR', { dp: 0 })}${kv('Auxiliary load', 'PLANT:AUX_MW')}</div>`,
+      `<div class="kv">${kv('Net unit heat rate', 'PLANT:PERF_NUHR', { dp: 0 })}${kv('Target', 'PLANT:PERF_NUHR_TGT', { dp: 0 })}${kv('Gross unit heat rate', 'PLANT:PERF_GUHR', { dp: 0 })}${kv('Turbine cycle heat rate', 'PLANT:PERF_TCHR', { dp: 0 })}${kv('Carnot limit', 'PLANT:PERF_CARNOT_HR', { dp: 0 })}${kv('Auxiliary load', 'PLANT:AUX_MW')}</div>`,
     ),
     panel(
       'Controllable losses',
-      `<div class="kv">${kv('Excess O2 (5100)', 'PLANT:PERF_HRC_O2', { dp: 2 })}${kv('AH exit gas temp (5110)', 'PLANT:PERF_HRC_EGT', { dp: 2 })}${kv('Final FW temp (2800)', 'PLANT:PERF_HRC_FWT', { dp: 2 })}${kv('Condenser pressure', 'PLANT:PERF_HRC_COND', { dp: 2 })}${kv('Total deviation', 'PLANT:PERF_HRC_TOTAL', { dp: 2 })}</div>
+      `<div class="kv">${kv('Excess O2', 'PLANT:PERF_HRC_O2', { dp: 2 })}${kv('AH exit gas temp', 'PLANT:PERF_HRC_EGT', { dp: 2 })}${kv('Final FW temp', 'PLANT:PERF_HRC_FWT', { dp: 2 })}${kv('Condenser pressure', 'PLANT:PERF_HRC_COND', { dp: 2 })}${kv('Total deviation', 'PLANT:PERF_HRC_TOTAL', { dp: 2 })}</div>
       <p style="color:var(--muted);font-size:11px">Heat rate penalty of each controllable parameter against its design / target value. Positive values cost fuel.</p>`,
     ),
     panel(
       'Boiler losses (% HHV)',
-      `<div class="kv">${kv('Dry gas (3040)', 'PLANT:PERF_L_DRYGAS', { dp: 2 })}${kv('Hydrogen in fuel (3050)', 'PLANT:PERF_L_H2', { dp: 2 })}${kv('Moisture in air (3060)', 'PLANT:PERF_L_AIRMOIST', { dp: 3 })}${kv('CO (3090)', 'PLANT:PERF_L_CO', { dp: 3 })}${kv('Radiation (3120)', 'PLANT:PERF_L_RAD', { dp: 3 })}${kv('Unaccounted', 'PLANT:PERF_L_UNACC', { dp: 2 })}${kv('Boiler efficiency (3130)', 'PLANT:PERF_BLR_EFF', { dp: 2 })}</div>`,
+      `<div class="kv">${kv('Dry gas', 'PLANT:PERF_L_DRYGAS', { dp: 2 })}${kv('Hydrogen in fuel', 'PLANT:PERF_L_H2', { dp: 2 })}${kv('Moisture in air', 'PLANT:PERF_L_AIRMOIST', { dp: 3 })}${kv('CO', 'PLANT:PERF_L_CO', { dp: 3 })}${kv('Radiation', 'PLANT:PERF_L_RAD', { dp: 3 })}${kv('Unaccounted', 'PLANT:PERF_L_UNACC', { dp: 2 })}${kv('Boiler efficiency', 'PLANT:PERF_BLR_EFF', { dp: 2 })}</div>`,
     ),
     panel(
       'About',

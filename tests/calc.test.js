@@ -23,7 +23,7 @@ describe('IAPWS-IF97 steam properties', () => {
 
 describe('combustion and boiler calculations', () => {
   const ult = fuel.fuelGasVolumeToMass(GAS);
-  it('converts the gas analysis to an ultimate analysis (3165)', () => {
+  it('converts the gas analysis to an ultimate analysis', () => {
     expect(units.btulbToKjkg(ult.MassLHVLb) / 1000).toBeCloseTo(48.5, 1);
     expect(ult.Carbon + ult.Hydrogen + ult.Oxygen + ult.Nitrogen + ult.Sulfur).toBeCloseTo(100, 1);
   });
@@ -33,11 +33,11 @@ describe('combustion and boiler calculations', () => {
     expect(fg.ExcessAir).toBeLessThan(13);
     expect(CB.flueGasFromExcessAir(ult, fg.ExcessAir).WetO2PctVol).toBeCloseTo(2.0, 4);
   });
-  it('inverts the flue gas enthalpy (3305)', () => {
+  it('inverts the flue gas enthalpy', () => {
     const fg = CB.combustionAnalysis(ult, 2.0);
     expect(FG.flueGasTemperature(fg, FG.flueGasEnthalpy(fg, 1500))).toBeCloseTo(1500, 3);
   });
-  it('computes a gas boiler efficiency by the loss method (3130)', () => {
+  it('computes a gas boiler efficiency by the loss method', () => {
     const be = BL.boilerEfficiency(ult, { heatInputAtMCR: 6000, cooledWalls: 4 }, { excessO2: 2, tGonl: 270, tAirIn: 90, heatAbsorption: 5200 });
     expect(be.efficiency).toBeGreaterThan(83);
     expect(be.efficiency).toBeLessThan(88);
@@ -56,7 +56,7 @@ describe('turbine, generator, condenser and heater calculations', () => {
     const t = GP.StmTempPH(600, h);
     expect(TB.enthalpyDropEff(2400, 1000, 600, t)).toBeCloseTo(86, 1);
   });
-  it('gives a used energy end point above the expansion line end point (2200)', () => {
+  it('gives a used energy end point above the expansion line end point', () => {
     const u = TB.ueepReheat(138, 640, 3690, 0, 0, 1.0, 3070, { reheatBaseEff: 89, reheatDesFlow: 3690, reheatP: 138, reheatT: 640, annulusArea: 306 });
     expect(u.ueep).toBeGreaterThan(u.elep);
     expect(u.exhaustLoss).toBeGreaterThan(5);
@@ -74,7 +74,7 @@ describe('turbine, generator, condenser and heater calculations', () => {
     const cf = CD.condenserCleanliness(nv, 77, gpm, 77 + r.rise, r.pInHg, 2900);
     expect(cf).toBeCloseTo(85, 0);
   });
-  it('Tsou heater model reproduces its design point (2990)', () => {
+  it('Tsou heater model reproduces its design point', () => {
     const D = design();
     for (const name of HEATERS) {
       const nv = D.heaters[name].nv;

@@ -209,57 +209,57 @@ Endpoint `127.0.0.1:5020`. Sizes: CO 68, DI 75, HR 66, IR 463.
 | 351 | 30352 | `APH_AIR_IN_T` | f32 | degC | Air heater air inlet temperature | PLANT |
 | 353 | 30354 | `APH_O2_OUT` | f32 | % | Flue gas O2 after the air heater | PLANT |
 | 355 | 30356 | `AFT` | f32 | degC | Adiabatic flame temperature (calculated) | PLANT |
-| 357 | 30358 | `PERF_EXCESS_AIR` | f32 | % | Excess air (3000) | PLANT |
-| 359 | 30360 | `PERF_AFT` | f32 | degC | Adiabatic flame temperature (3680) | PLANT |
-| 361 | 30362 | `PERF_BLR_EFF` | f32 | % | Boiler efficiency, HHV, loss method (3130) | PLANT |
-| 363 | 30364 | `PERF_L_DRYGAS` | f32 | % | Dry gas loss (3040) | PLANT |
-| 365 | 30366 | `PERF_L_H2` | f32 | % | Loss from hydrogen in fuel (3050) | PLANT |
-| 367 | 30368 | `PERF_L_AIRMOIST` | f32 | % | Loss from moisture in air (3060) | PLANT |
-| 369 | 30370 | `PERF_L_CO` | f32 | % | CO loss (3090) | PLANT |
-| 371 | 30372 | `PERF_L_RAD` | f32 | % | Radiation loss (3120) | PLANT |
+| 357 | 30358 | `PERF_EXCESS_AIR` | f32 | % | Excess air | PLANT |
+| 359 | 30360 | `PERF_AFT` | f32 | degC | Adiabatic flame temperature | PLANT |
+| 361 | 30362 | `PERF_BLR_EFF` | f32 | % | Boiler efficiency, HHV, loss method | PLANT |
+| 363 | 30364 | `PERF_L_DRYGAS` | f32 | % | Dry gas loss | PLANT |
+| 365 | 30366 | `PERF_L_H2` | f32 | % | Loss from hydrogen in fuel | PLANT |
+| 367 | 30368 | `PERF_L_AIRMOIST` | f32 | % | Loss from moisture in air | PLANT |
+| 369 | 30370 | `PERF_L_CO` | f32 | % | CO loss | PLANT |
+| 371 | 30372 | `PERF_L_RAD` | f32 | % | Radiation loss | PLANT |
 | 373 | 30374 | `PERF_L_UNACC` | f32 | % | Unaccounted loss | PLANT |
 | 375 | 30376 | `PERF_FUEL_HHV` | f32 | MW | Fuel heat input, HHV | PLANT |
-| 377 | 30378 | `PERF_BLR_ABS` | f32 | MW | Boiler heat absorption (3180) | PLANT |
-| 379 | 30380 | `PERF_TCHR` | f32 | kJ/kWh | Turbine cycle heat rate, gross (2100) | PLANT |
+| 377 | 30378 | `PERF_BLR_ABS` | f32 | MW | Boiler heat absorption | PLANT |
+| 379 | 30380 | `PERF_TCHR` | f32 | kJ/kWh | Turbine cycle heat rate, gross | PLANT |
 | 381 | 30382 | `PERF_GUHR` | f32 | kJ/kWh | Gross unit heat rate, HHV | PLANT |
-| 383 | 30384 | `PERF_NUHR` | f32 | kJ/kWh | Net unit heat rate, HHV (5010) | PLANT |
-| 385 | 30386 | `PERF_NUHR_TGT` | f32 | kJ/kWh | Target net unit heat rate (5030) | PLANT |
-| 387 | 30388 | `PERF_CARNOT_HR` | f32 | kJ/kWh | Carnot heat rate (5200) | PLANT |
-| 389 | 30390 | `PERF_GEN_EFF` | f32 | % | Generator efficiency (2540) | PLANT |
-| 391 | 30392 | `PERF_HP_EFF` | f32 | % | HP turbine enthalpy drop efficiency (2110) | PLANT |
-| 393 | 30394 | `PERF_HP_EFF_EXP` | f32 | % | HP turbine expected efficiency (2340) | PLANT |
-| 395 | 30396 | `PERF_IP_EFF` | f32 | % | IP turbine enthalpy drop efficiency (2110) | PLANT |
-| 397 | 30398 | `PERF_IP_EFF_EXP` | f32 | % | IP turbine expected efficiency (2350) | PLANT |
-| 399 | 30400 | `PERF_THR_FLOW` | f32 | % | Throttle flow, % of design (2021) | PLANT |
-| 401 | 30402 | `PERF_THR_P_DEV` | f32 | % | Throttle pressure deviation (2400) | PLANT |
-| 403 | 30404 | `PERF_THR_T_DEV` | f32 | K | Throttle temperature deviation (2410) | PLANT |
-| 405 | 30406 | `PERF_RH_T_DEV` | f32 | K | Reheat temperature deviation (2420) | PLANT |
-| 407 | 30408 | `PERF_COND_DUTY` | f32 | MW | Condenser duty (2600) | PLANT |
-| 409 | 30410 | `PERF_COND_CF` | f32 | % | Condenser cleanliness factor (2680) | PLANT |
-| 411 | 30412 | `PERF_COND_EXP` | f32 | mbar | Expected condenser pressure (2690) | PLANT |
+| 383 | 30384 | `PERF_NUHR` | f32 | kJ/kWh | Net unit heat rate, HHV | PLANT |
+| 385 | 30386 | `PERF_NUHR_TGT` | f32 | kJ/kWh | Target net unit heat rate | PLANT |
+| 387 | 30388 | `PERF_CARNOT_HR` | f32 | kJ/kWh | Carnot heat rate | PLANT |
+| 389 | 30390 | `PERF_GEN_EFF` | f32 | % | Generator efficiency | PLANT |
+| 391 | 30392 | `PERF_HP_EFF` | f32 | % | HP turbine enthalpy drop efficiency | PLANT |
+| 393 | 30394 | `PERF_HP_EFF_EXP` | f32 | % | HP turbine expected efficiency | PLANT |
+| 395 | 30396 | `PERF_IP_EFF` | f32 | % | IP turbine enthalpy drop efficiency | PLANT |
+| 397 | 30398 | `PERF_IP_EFF_EXP` | f32 | % | IP turbine expected efficiency | PLANT |
+| 399 | 30400 | `PERF_THR_FLOW` | f32 | % | Throttle flow, % of design | PLANT |
+| 401 | 30402 | `PERF_THR_P_DEV` | f32 | % | Throttle pressure deviation | PLANT |
+| 403 | 30404 | `PERF_THR_T_DEV` | f32 | K | Throttle temperature deviation | PLANT |
+| 405 | 30406 | `PERF_RH_T_DEV` | f32 | K | Reheat temperature deviation | PLANT |
+| 407 | 30408 | `PERF_COND_DUTY` | f32 | MW | Condenser duty | PLANT |
+| 409 | 30410 | `PERF_COND_CF` | f32 | % | Condenser cleanliness factor | PLANT |
+| 411 | 30412 | `PERF_COND_EXP` | f32 | mbar | Expected condenser pressure | PLANT |
 | 413 | 30414 | `PERF_COND_DEV` | f32 | mbar | Condenser pressure deviation from expected | PLANT |
-| 415 | 30416 | `PERF_COND_TTD` | f32 | K | Condenser TTD (2930) | PLANT |
-| 417 | 30418 | `PERF_LPH1_TTD` | f32 | K | LPH1 terminal temperature difference (2930) | PLANT |
+| 415 | 30416 | `PERF_COND_TTD` | f32 | K | Condenser TTD | PLANT |
+| 417 | 30418 | `PERF_LPH1_TTD` | f32 | K | LPH1 terminal temperature difference | PLANT |
 | 419 | 30420 | `PERF_LPH1_DCA` | f32 | K | LPH1 drain cooler approach | PLANT |
-| 421 | 30422 | `PERF_LPH2_TTD` | f32 | K | LPH2 terminal temperature difference (2930) | PLANT |
+| 421 | 30422 | `PERF_LPH2_TTD` | f32 | K | LPH2 terminal temperature difference | PLANT |
 | 423 | 30424 | `PERF_LPH2_DCA` | f32 | K | LPH2 drain cooler approach | PLANT |
-| 425 | 30426 | `PERF_LPH3_TTD` | f32 | K | LPH3 terminal temperature difference (2930) | PLANT |
+| 425 | 30426 | `PERF_LPH3_TTD` | f32 | K | LPH3 terminal temperature difference | PLANT |
 | 427 | 30428 | `PERF_LPH3_DCA` | f32 | K | LPH3 drain cooler approach | PLANT |
-| 429 | 30430 | `PERF_LPH4_TTD` | f32 | K | LPH4 terminal temperature difference (2930) | PLANT |
+| 429 | 30430 | `PERF_LPH4_TTD` | f32 | K | LPH4 terminal temperature difference | PLANT |
 | 431 | 30432 | `PERF_LPH4_DCA` | f32 | K | LPH4 drain cooler approach | PLANT |
-| 433 | 30434 | `PERF_HPH6_TTD` | f32 | K | HPH6 terminal temperature difference (2930) | PLANT |
+| 433 | 30434 | `PERF_HPH6_TTD` | f32 | K | HPH6 terminal temperature difference | PLANT |
 | 435 | 30436 | `PERF_HPH6_DCA` | f32 | K | HPH6 drain cooler approach | PLANT |
-| 437 | 30438 | `PERF_HPH7_TTD` | f32 | K | HPH7 terminal temperature difference (2930) | PLANT |
+| 437 | 30438 | `PERF_HPH7_TTD` | f32 | K | HPH7 terminal temperature difference | PLANT |
 | 439 | 30440 | `PERF_HPH7_DCA` | f32 | K | HPH7 drain cooler approach | PLANT |
-| 441 | 30442 | `PERF_AH_LEAK` | f32 | % | Air heater leakage (3903) | PLANT |
-| 443 | 30444 | `PERF_AH_X` | f32 |  | Air heater X-ratio (3800) | PLANT |
-| 445 | 30446 | `PERF_AH_GAS_EFF` | f32 | % | Air heater gas side efficiency (3810) | PLANT |
-| 447 | 30448 | `PERF_AH_AIR_EFF` | f32 | % | Air heater air side efficiency (3820) | PLANT |
-| 449 | 30450 | `PERF_AH_TGONL` | f32 | degC | AH gas outlet corrected to no leakage (3830) | PLANT |
-| 451 | 30452 | `PERF_AH_TGONL_EXP` | f32 | degC | AH expected no-leak gas outlet (5182) | PLANT |
-| 453 | 30454 | `PERF_HRC_O2` | f32 | % | Heat rate correction: excess O2 (5100) | PLANT |
-| 455 | 30456 | `PERF_HRC_EGT` | f32 | % | Heat rate correction: AH exit gas temperature (5110) | PLANT |
-| 457 | 30458 | `PERF_HRC_FWT` | f32 | % | Heat rate correction: final feedwater temperature (2800) | PLANT |
+| 441 | 30442 | `PERF_AH_LEAK` | f32 | % | Air heater leakage | PLANT |
+| 443 | 30444 | `PERF_AH_X` | f32 |  | Air heater X-ratio | PLANT |
+| 445 | 30446 | `PERF_AH_GAS_EFF` | f32 | % | Air heater gas side efficiency | PLANT |
+| 447 | 30448 | `PERF_AH_AIR_EFF` | f32 | % | Air heater air side efficiency | PLANT |
+| 449 | 30450 | `PERF_AH_TGONL` | f32 | degC | AH gas outlet corrected to no leakage | PLANT |
+| 451 | 30452 | `PERF_AH_TGONL_EXP` | f32 | degC | AH expected no-leak gas outlet | PLANT |
+| 453 | 30454 | `PERF_HRC_O2` | f32 | % | Heat rate correction: excess O2 | PLANT |
+| 455 | 30456 | `PERF_HRC_EGT` | f32 | % | Heat rate correction: AH exit gas temperature | PLANT |
+| 457 | 30458 | `PERF_HRC_FWT` | f32 | % | Heat rate correction: final feedwater temperature | PLANT |
 | 459 | 30460 | `PERF_HRC_COND` | f32 | % | Heat rate correction: condenser pressure | PLANT |
 | 461 | 30462 | `PERF_HRC_TOTAL` | f32 | % | Total controllable heat rate deviation | PLANT |
 
