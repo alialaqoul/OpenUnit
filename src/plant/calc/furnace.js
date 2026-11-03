@@ -1,11 +1,9 @@
 /**
- * Furnace radiation - EtaPRO template 3690 (clean furnace exit gas temperature) with the
- * FlameEmissivity routine of the calculation details (gas / oil flame: non-luminous tri-atomic
- * gas emissivity plus a luminous soot fraction, m = 0.1 for gas, 0.55 for oil).
+ * Furnace radiation: clean furnace exit gas temperature with a flame emissivity model (gas / oil
+ * flame: non-luminous tri-atomic gas emissivity plus a luminous soot fraction, m = 0.1 for gas,
+ * 0.55 for oil).
  *
- * The 3690 template body and the TriAtomGasesCoeff / SootPartCoeff routines are not in the
- * documents. FlameEmissivity follows the normative furnace method it is written for, so the
- * absorption coefficients and the exit temperature use that method's equations:
+ * The absorption coefficients and the exit temperature follow the normative furnace method:
  *   k_g  = [(7.8 + 16 rH2O) / sqrt(10 pn s) - 1] (1 - 0.37 T''/1000)        [1/(m MPa)]
  *   k_c  = 0.3 (2 - alpha) (1.6 T''/1000 - 0.5) C/H                          [1/(m MPa)]
  *   T''  = Ta / (1 + M Bo^-0.6 a_f^0.6)         Bo = phi B Vc / (sigma psi F Ta^3)
@@ -48,8 +46,8 @@ export function flameEmissivity(ult, fg, { gasFrac = 1, oilFrac = 0, beamLengthF
 }
 
 /**
- * Template 3690: furnace exit gas temperature [F] for a cleanliness (thermal efficiency psi of the
- * walls, 1 = clean reference). fuel flow in lb/s, available heat per lbm flue gas from 3680 (avail),
+ * Furnace exit gas temperature [F] for a cleanliness (thermal efficiency psi of the
+ * walls, 1 = clean reference). fuel flow in lb/s, available heat per lbm flue gas (avail),
  * nv: { wallAreaFt2, beamLengthFt, burnerHeight (relative, 0..1) }.
  * Returns { fegt, furnaceAbsorption [MMBtu/h], emissivity }.
  */

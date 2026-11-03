@@ -1,9 +1,8 @@
 /**
- * Flue gas and air properties - EtaPRO templates 3300 / 3305 (flue gas enthalpy, reference
- * 77 F), 3303 / 3304 (densities), 3680 (adiabatic flame temperature), 3650 / 3660 (cleanliness)
- * and 3351 / 3427 (section overall heat transfer coefficient).
+ * Flue gas and air properties: flue gas enthalpy (reference 77 F), densities, adiabatic flame
+ * temperature, cleanliness and section overall heat transfer coefficient.
  *
- * The templates use "abbreviated JANAF / NASA" enthalpy polynomials; here each component's
+ * Each component's
  * enthalpy comes from the NIST Shomate fits of the same JANAF tables (H - H298.15).
  */
 import { fToC } from './units.js';
@@ -29,7 +28,7 @@ export function componentEnthalpy(name, tF) {
   return ((kjmol * 1000) / c.M) / 2.326;
 }
 
-/** Template 3305: wet flue gas enthalpy [Btu/lbm] at T [F] (3300: at 77 F, i.e. zero). */
+/** Wet flue gas enthalpy [Btu/lbm] at T [F] (zero at 77 F). */
 export function flueGasEnthalpy(fg, tF) {
   return (
     (fg.WetCO2PctWt * componentEnthalpy('CO2', tF) +
@@ -65,7 +64,7 @@ export function flueGasCp(fg, tF) {
   );
 }
 
-/** Flue gas temperature [F] for an enthalpy [Btu/lbm] (inverse of 3305, Newton on the Shomate cp). */
+/** Flue gas temperature [F] for an enthalpy [Btu/lbm] (inverse, Newton on the Shomate cp). */
 export function flueGasTemperature(fg, h) {
   let T = 77 + h / 0.28;
   for (let i = 0; i < 12; i++) {
@@ -82,15 +81,15 @@ export function airEnthalpy(tF, specHum = 0.013) {
   return (dry + specHum * componentEnthalpy('H2O', tF)) / (1 + specHum);
 }
 
-/** Template 3303: air density [lbm/ft3] at pressure [inHga] and temperature [F]. */
+/** Air density [lbm/ft3] at pressure [inHga] and temperature [F]. */
 export const airDensity = (pInHg, tF) => (1.325 * pInHg) / (tF + 459.67);
-/** Template 3304: flue gas density [lbm/ft3] at T [F] and p [psia] (ideal gas). */
+/** Flue gas density [lbm/ft3] at T [F] and p [psia] (ideal gas). */
 export const flueGasDensity = (fg, tF, pPsia) => (pPsia * fg.WetMolWt) / (10.73 * (459.67 + tF));
 
 /**
- * Template 3680: adiabatic flame temperature [F]. The energy available in the furnace per lbm of
+ * Adiabatic flame temperature [F]. The energy available in the furnace per lbm of
  * wet flue gas, with heat in the combustion air above 77 F, set equal to the flue gas enthalpy.
- * (The template estimates the temperature with one mean specific heat; it is solved exactly here.)
+ * (The temperature is solved exactly rather than with one mean specific heat.)
  */
 export function adiabaticFlameTemp(ult, fg, { radLoss = 0, tAirOut = 77, carbonInAsh = 0 } = {}) {
   const avail =
@@ -102,20 +101,20 @@ export function adiabaticFlameTemp(ult, fg, { radLoss = 0, tAirOut = 77, carbonI
   return { tF: flueGasTemperature(fg, avail), availEnergy: avail };
 }
 
-/** Template 3660: furnace water wall cleanliness factor (decimal). */
+/** Furnace water wall cleanliness factor (decimal). */
 export function waterWallCleanliness(fg, flameTemp, actualFegt, cleanFegt) {
   const hf = flueGasEnthalpy(fg, flameTemp);
   const d = hf - flueGasEnthalpy(fg, cleanFegt);
   return d > 0 ? (hf - flueGasEnthalpy(fg, actualFegt)) / d : 0;
 }
 
-/** Template 3650: boiler section cleanliness factor. */
+/** Boiler section cleanliness factor. */
 export function sectionCleanliness(htcAct, gitAct, htcBase, gitBase) {
   const htcClean = htcBase * ((gitAct + 459.67) / (gitBase + 459.67)) ** 0.6;
   return htcClean > 0 ? htcAct / htcClean : 0;
 }
 
-/** Log mean temperature difference (templates 3351 / 3427), counter or parallel flow. */
+/** Log mean temperature difference, counter or parallel flow. */
 export function lmtd(tc1, tc2, th1, th2, arrangement = 'counter') {
   const [a, b] = arrangement === 'counter' ? [th2 - tc1, th1 - tc2] : [th1 - tc1, th2 - tc2];
   if (a === b) return a;
@@ -123,5 +122,5 @@ export function lmtd(tc1, tc2, th1, th2, arrangement = 'counter') {
   return 0;
 }
 
-/** Templates 3351 / 3427: overall heat transfer coefficient [Btu/h ft2 F] from duty [MMBtu/h], area [ft2], LMTD [F]. */
+/** Overall heat transfer coefficient [Btu/h ft2 F] from duty [MMBtu/h], area [ft2], LMTD [F]. */
 export const overallU = (dutyMMBtu, areaFt2, lmtdF) => (areaFt2 > 0 && lmtdF > 0 ? (1e6 * dutyMMBtu) / (areaFt2 * lmtdF) : 0);

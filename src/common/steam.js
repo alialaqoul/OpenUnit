@@ -1,6 +1,6 @@
 /**
- * Water / steam properties of the process model: IAPWS-IF97 (if97.js), the formulation EtaPRO's
- * "GP Steam" uses, so the plant obeys the same thermodynamics as the performance calculations.
+ * Water / steam properties of the process model: IAPWS-IF97 (if97.js), the same
+ * formulation the performance calculations use, so both obey the same thermodynamics.
  *
  *   region 1 (compressed liquid) and region 2 (superheated steam) exactly; saturation from
  *   region 4 with the saturated phases from regions 1 / 2 up to 16.53 MPa (350 degC). Above it
@@ -231,7 +231,7 @@ export function hPS(P, s) {
   return l.h + x * (g.h - l.h);
 }
 
-/** Enthalpy drop [kJ/kg] of an expansion from Pin, Tin to Pout with enthalpy-drop efficiency eta (template 2140). */
+/** Enthalpy drop [kJ/kg] of an expansion from Pin, Tin to Pout with enthalpy-drop efficiency eta. */
 export function expansionDrop(Pin, Tin, Pout, eta) {
   if (Pin <= 0 || Pout >= Pin) return 0;
   const a = steam(Pin, Tin);

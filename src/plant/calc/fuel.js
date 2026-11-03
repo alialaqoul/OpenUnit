@@ -1,10 +1,9 @@
 /**
- * Fuel gas analysis (EtaPRO templates 3140 / 3150 / 3165 "FuelGasVolumeToMass"): converts the
- * volumetric fuel gas composition into the mass based ultimate analysis (ULT) that every
- * combustion template uses, with density, HHV and LHV.
+ * Fuel gas analysis: converts the volumetric fuel gas composition into the mass based ultimate
+ * analysis (ULT) that the combustion calculations use, with density, HHV and LHV.
  */
 
-// component: molar mass, atoms C/H/O/N/S, HHV / LHV [Btu/lbm], density at 68 F / 29.92 inHga [lbm/ft3] (template 3165)
+// component: molar mass, atoms C/H/O/N/S, HHV / LHV [Btu/lbm], density at 68 F / 29.92 inHga [lbm/ft3]
 const GAS = {
   Methane: { M: 16.043, C: 1, H: 4, O: 0, N: 0, S: 0, hhv: 23891, lhv: 21511, rho: 0.041712 },
   Ethane: { M: 30.069, C: 2, H: 6, O: 0, N: 0, S: 0, hhv: 22333, lhv: 20429, rho: 0.07867 },
@@ -42,7 +41,7 @@ export function fuelGasVolumeToMass(comp) {
     for (const e of Object.keys(el)) el[e] += x * g[e] * AW[e];
     hhv += m * g.hhv;
     lhv += m * g.lhv;
-    rho += x * g.rho; // template 3165: sum of partial densities
+    rho += x * g.rho; // sum of partial densities
   }
   return {
     Carbon: (100 * el.C) / mass,

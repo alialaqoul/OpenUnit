@@ -1,12 +1,12 @@
 /**
- * Boiler losses and efficiency by the loss method - EtaPRO templates 3040, 3050, 3060, 3070,
- * 3080, 3085, 3090, 3120 and 3130 (ASME PTC 4.1 / PTC 4), and the boiler heat absorption 3180.
+ * Boiler losses and efficiency by the loss method (ASME PTC 4.1 / PTC 4), and the boiler heat
+ * absorption.
  * Temperatures in F, pressures in psia, losses in % of fuel HHV.
  */
 import { combustionAnalysis } from './combustion.js';
-import { SteamEnthalpy, LiquidWaterEnthalpy, StmEnth, StmHf, StmHg, StmTempPH } from './gpsteam.js';
+import { SteamEnthalpy, LiquidWaterEnthalpy, StmEnth, StmHf, StmHg, StmTempPH } from './steamus.js';
 
-/** Template 3040: dry gas loss. */
+/** Dry gas loss. */
 export function dryGasLoss(ult, fg, tGonl, tAirIn) {
   const CHRatio = ult.Carbon / ult.Hydrogen;
   const ACPVT = -2.09556 + 0.366905 * CHRatio + 0.000380948 * CHRatio ** 2;
@@ -15,31 +15,31 @@ export function dryGasLoss(ult, fg, tGonl, tAirIn) {
   const GasSpecHeat = ACPVX + 0.005 * CPX;
   return ((fg.DryGasPerlbFuel * GasSpecHeat * (tGonl - tAirIn)) / ult.MassHHVLb) * 100;
 }
-/** Template 3050: loss from moisture formed by burning hydrogen. */
+/** Loss from moisture formed by burning hydrogen. */
 export const hydrogenLoss = (ult, tGonl, tAirIn, pBar = 14.696) =>
   (8.936 * ult.Hydrogen * (SteamEnthalpy(pBar, tGonl) - LiquidWaterEnthalpy(pBar, tAirIn))) / ult.MassHHVLb;
-/** Template 3060: loss from moisture in the air. */
+/** Loss from moisture in the air. */
 export const airMoistureLoss = (ult, fg, specHum, tGonl, tAirIn) =>
   ((specHum * fg.DryAirPerlbFuel * ((1061 + 0.444 * tGonl) - (1061 + 0.444 * tAirIn))) / ult.MassHHVLb) * 100;
-/** Template 3070: loss from moisture in the fuel. */
+/** Loss from moisture in the fuel. */
 export const fuelMoistureLoss = (ult, tGonl, tAirIn, pBar = 14.696) =>
   (ult.Moisture * (SteamEnthalpy(pBar, tGonl) - LiquidWaterEnthalpy(pBar, tAirIn))) / ult.MassHHVLb;
-/** Template 3080: loss from unburned carbon in the residue. */
+/** Loss from unburned carbon in the residue. */
 export function carbonAshLoss(ult, fg) {
   const unburned = fg.PctCarbonInFuelResidue;
   if (!(ult.Ash > 0)) return 0;
   const refuse = ult.Ash / (100 - unburned);
   return ((refuse * ((14500 * unburned) / 100)) / ult.MassHHVLb) * 100;
 }
-/** Template 3085: NOx loss. */
+/** NOx loss. */
 export const noxLoss = (ult, fg, NOxppm) => ((NOxppm / 10000) * (fg.DryAirPerlbFuel / fg.DryMolWt) * 38600) / ult.MassHHVLb;
-/** Template 3090: loss from carbon monoxide. */
+/** Loss from carbon monoxide. */
 export function coLoss(ult, fg, COppm, carbonInAsh = 0) {
   const carbonBurned = (ult.Carbon * (1 - (carbonInAsh * ult.Ash) / 10000)) / 100;
   const CO = COppm / 10000;
   return CO > 0 ? (CO / (CO + fg.DryCO2PctVol)) * 10160 * carbonBurned * (100 / ult.MassHHVLb) : 0;
 }
-/** Template 3120: radiation loss [%] at a heat input [MMBtu/h], from the MCR heat input and cooled walls. */
+/** Radiation loss [%] at a heat input [MMBtu/h], from the MCR heat input and cooled walls. */
 export function radiationLoss(heatInput, heatInputAtMCR, cooledWalls = 4) {
   if (!(heatInput > 0) || !(heatInputAtMCR > 0)) return 0;
   const X = Math.log10(heatInputAtMCR);
@@ -50,7 +50,7 @@ export function radiationLoss(heatInput, heatInputAtMCR, cooledWalls = 4) {
 }
 
 /**
- * Template 3130: boiler efficiency by the loss method. Iterates the radiation loss on the heat
+ * Boiler efficiency by the loss method. Iterates the radiation loss on the heat
  * input implied by the heat absorption. Returns the efficiency and every loss.
  */
 export function boilerEfficiency(ult, nv, m) {
@@ -76,13 +76,13 @@ export function boilerEfficiency(ult, nv, m) {
   return { efficiency: eff, losses: { Ldg, Lfm, Lam, Lh2, Luc, LCO, NOxLs, Lrad, Luac }, totalLoss: 100 - eff, fg };
 }
 
-/** Template 3501: desuperheater outlet temperature [F] from steam and spray flows [kPPH]. */
+/** Desuperheater outlet temperature [F] from steam and spray flows [kPPH]. */
 export function dshOutletTemp(Wstm, P, Tin, Tspray, Wspray) {
   const H1 = SteamEnthalpy(P, Tin);
   const h3 = LiquidWaterEnthalpy(P, Tspray);
   return StmTempPH(P, (Wstm * H1 + Wspray * h3) / (Wstm + Wspray));
 }
-/** Template 3505: desuperheater spray flow [kPPH] for an outlet temperature. */
+/** Desuperheater spray flow [kPPH] for an outlet temperature. */
 export function dshSprayFlow(Wstm, P, Tin, Tspray, Tout) {
   const H1 = SteamEnthalpy(P, Tin);
   const H2 = SteamEnthalpy(P, Tout);
@@ -91,7 +91,7 @@ export function dshSprayFlow(Wstm, P, Tin, Tspray, Tout) {
 }
 
 /**
- * Template 3180 (= 2090 with absolute pressures): boiler heat absorption [MMBtu/h] from the
+ * Boiler heat absorption [MMBtu/h] from the
  * water / steam flows [kPPH], pressures [psia] and temperatures [F] around the boiler.
  */
 export function boilerHeatAbsorption(w) {

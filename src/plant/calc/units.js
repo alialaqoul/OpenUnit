@@ -1,6 +1,6 @@
 /**
  * Unit conversions between the simulator (SI: MPa, degC, kJ/kg, kg/s, MW) and the US customary
- * units the EtaPRO calculation templates are written in (psia, degF, Btu/lbm, kPPH, MMBtu/h).
+ * units the calculation library is written in (psia, degF, Btu/lbm, kPPH, MMBtu/h).
  */
 export const PSI_PER_MPA = 145.0377;
 export const BTU_PER_KJ = 1 / 1.05505585;

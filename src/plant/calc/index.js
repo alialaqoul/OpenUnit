@@ -1,10 +1,9 @@
 /**
- * EtaPRO calculation template library ("97) EtaPRO Calculation Templates"), one function per
- * template, in the templates' own (US customary) units. See docs/etapro.md for the template map
- * and the approximations used where the documents do not give a figure's coefficients.
+ * Thermal performance calculation library, in US customary units. See docs/calculations.md for
+ * where each calculation is used and the approximations made where coefficients are not published.
  */
 export * as units from './units.js';
-export * as gpsteam from './gpsteam.js';
+export * as steamus from './steamus.js';
 export * as fuel from './fuel.js';
 export * as combustion from './combustion.js';
 export * as fluegas from './fluegas.js';

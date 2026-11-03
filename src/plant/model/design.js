@@ -1,10 +1,10 @@
 /**
- * Design (non-volatile) data of the unit and its design heat balance at MCR, solved with the
- * EtaPRO calculation templates (src/plant/etapro). The heat balance calibrates every constant
+ * Design data of the unit and its design heat balance at MCR, solved with the calculation
+ * library (src/plant/calc). The heat balance calibrates every constant
  * the dynamic model needs: turbine stage flow coefficients and efficiencies, feedwater heater
  * zones (Tsou), condenser surface (HEI), furnace wall area, convective section UA values and the
  * air heater - so that the process model reproduces the design point exactly and moves off it
- * by the template equations.
+ * by the same equations.
  *
  * Design targets: 700 MW gross at 16.8 MPa(a) / 538 C / 538 C with the fuel and air of 100 %
  * boiler demand (DES.Q_FUEL = 1620 MW LHV, DES.AIR_FULL = 624 kg/s - the figures the
@@ -12,10 +12,10 @@
  * level for the cycle heat input the boiler delivers from that fuel.
  *
  * Units: SI in the returned object (MPa abs, degC, kg/s, MW, kJ/kg) unless a key says otherwise;
- * `nv` sub-objects are EtaPRO non-volatile forms in the templates' US units.
+ * `nv` sub-objects are design data in US customary units.
  */
 import * as st from '../../common/steam.js';
-import { fuel as FU, combustion as CB, fluegas as FG, furnace as FN, turbine as TB, generator as GN, condenser as CD, fwh as FW, boiler as BLR } from '../etapro/index.js';
+import { fuel as FU, combustion as CB, fluegas as FG, furnace as FN, turbine as TB, generator as GN, condenser as CD, fwh as FW, boiler as BLR } from '../calc/index.js';
 import { DES } from './constants.js';
 
 // ------------------------------------------------------------------ unit conversions
@@ -32,12 +32,12 @@ const MW_PER_MMBTUH = 1 / 3.412142;
 const LB_PER_KG = 2.20462262;
 
 // ------------------------------------------------------------------ fuel
-/** Pipeline natural gas, volume % (template 3165 component set). */
+/** Pipeline natural gas, volume %. */
 export const FUEL_COMP = { Methane: 96, Ethane: 2.2, Propane: 0.4, Nitrogen: 0.9, CarbonDioxide: 0.5 };
 const ULT_BASE = FU.fuelGasVolumeToMass(FUEL_COMP);
 const ultCache = new Map();
 /**
- * Ultimate analysis (template 3150) with the heating values scaled to the instructor's LHV
+ * Ultimate analysis with the heating values scaled to the instructor's LHV
  * [MJ/kg] - the composition stays, the calorific value follows the set point.
  */
 export function fuelAnalysis(lhv = DES.GAS_LHV) {
@@ -50,20 +50,20 @@ export function fuelAnalysis(lhv = DES.GAS_LHV) {
   }
   return u;
 }
-export const SPEC_HUM = 0.013; // lbm water / lbm dry air (template 3908 default)
+export const SPEC_HUM = 0.013; // lbm water / lbm dry air (default)
 
 // ------------------------------------------------------------------ gas path (shared by design and model)
-/** Wet flue gas enthalpy [kJ/kg] above 25 C at T [C] (template 3305). */
+/** Wet flue gas enthalpy [kJ/kg] above 25 C at T [C]. */
 export const gasH = (fg, tC) => toKj(FG.flueGasEnthalpy(fg, toF(tC)));
 /** Inverse of gasH [C]. */
 export const gasT = (fg, h) => toC(FG.flueGasTemperature(fg, toBtu(h)));
-/** Wet air enthalpy [kJ/kg] above 25 C on the template 3680 basis (0.24 Btu/lbm F), so the air heater and the flame energy balance agree. */
+/** Wet air enthalpy [kJ/kg] above 25 C on the same basis (0.24 Btu/lbm F), so the air heater and the flame energy balance agree. */
 export const airH = (tC) => 0.24 * 2.326 * 1.8 * (tC - 25);
 
 /**
  * Convective section: heat [MW] from gas (Wg kg/s, inlet TgIn) to steam / water at mean
  * temperature Ts through UA [kW/K], with the gas temperature falling across the section,
- * and the gas outlet temperature by enthalpy (3305).
+ * and the gas outlet temperature by enthalpy.
  */
 export function gasSection(fg, Wg, TgIn, Ts, UA) {
   if (!(Wg > 0.5) || !(UA > 0)) return { q: 0, TgOut: TgIn };
@@ -71,7 +71,7 @@ export function gasSection(fg, Wg, TgIn, Ts, UA) {
   const q = (UA * (TgIn - Ts)) / (1 + UA / (2 * Wg * cp)) / 1000;
   return { q, TgOut: gasT(fg, gasH(fg, TgIn) - (q * 1000) / Wg) };
 }
-/** Template 3650: section UA at the actual gas flow and gas inlet temperature (clean htc ~ (GIT)^0.6, convective ~ W^0.6). */
+/** Section UA at the actual gas flow and gas inlet temperature (clean htc ~ (GIT)^0.6, convective ~ W^0.6). */
 export const sectionUA = (UAdes, Wg, WgDes, TgIn, TgInDes, clean = 1) =>
   UAdes * clean * Math.pow(Math.max(0, Wg) / WgDes, 0.6) * Math.pow((Math.max(TgIn, 20) + 273.15) / (TgInDes + 273.15), 0.6);
 
@@ -84,7 +84,7 @@ export function cfEffectiveness(ntu, cr) {
 }
 /**
  * Regenerative air heater: gas Wg at TgIn, air Wa at TaIn, UA [kW/K]. Returns the no-leak gas
- * outlet (Tgonl), the air outlet, the duty [MW], X-ratio (3800) and gas side efficiency (3810).
+ * outlet (Tgonl), the air outlet, the duty [MW], X-ratio and gas side efficiency.
  */
 export function airHeaterHX(fg, Wg, TgIn, Wa, TaIn, UA) {
   if (!(Wg > 0.5) || !(Wa > 0.5) || !(UA > 0)) return { Tgonl: TgIn, TaOut: TaIn, q: 0, x: 0, eff: 0 };
@@ -104,21 +104,21 @@ export const ahUA = (UAdes, Wg, WgDes, Wa, WaDes) =>
   Wg > 0.5 && Wa > 0.5 ? (2 * UAdes) / (Math.pow(WgDes / Wg, 0.6) + Math.pow(WaDes / Wa, 0.6)) : 0;
 
 /**
- * Template 3680 available energy [kJ/kg wet gas] with combustion air at tAir [C], and the
+ * Available energy [kJ/kg wet gas] with combustion air at tAir [C], and the
  * adiabatic flame temperature [C].
  */
 export function flame(ult, fg, tAir, radLossPct) {
   const a = FG.adiabaticFlameTemp(ult, fg, { radLoss: radLossPct, tAirOut: toF(tAir) });
   return { aft: toC(a.tF), avail: toKj(a.availEnergy), raw: a };
 }
-/** Template 3680 available energy only [kJ/kg wet gas] (no temperature solve). */
+/** Available energy only [kJ/kg wet gas] (no temperature solve). */
 export function availEnergy(ult, fg, tAir, radLossPct) {
   const avail =
     (ult.MassHHVLb * (1 - radLossPct / 100) + 0.24 * fg.WetAirPerlbFuel * (toF(tAir) - 77) - 1030 * ((8.936 * ult.Hydrogen) / 100 + ult.Moisture / 100)) /
     fg.WetGasPerlbFuel;
   return toKj(avail);
 }
-// ------------------------------------------------------------------ non-volatile data
+// ------------------------------------------------------------------ design data
 /** Turbine form ("Utility Steam Turbine", US units) - '62 GL inputs. */
 export const NV_TURBINE = {
   throttleP: toPsia(16.8),
@@ -164,12 +164,12 @@ const CW_FLOW_DES = 2 * DES.CW_PUMP_FLOW; // kg/s
 // ------------------------------------------------------------------ helpers
 const hPT = (P, T) => st.hSteam(P, T);
 const sPT = (P, T) => st.sSteam(P, T);
-/** Expansion end point enthalpy [kJ/kg] at Pout from (hin, sin) at efficiency eta (template 2140). */
+/** Expansion end point enthalpy [kJ/kg] at Pout from (hin, sin) at efficiency eta. */
 const expand = (hin, sin, Pout, eta) => hin - eta * (hin - st.hPS(Pout, sin));
 const tPH = (P, h) => st.tSteam(P, h);
 const sPH = (P, h) => st.sPH(P, h);
 const hLiqPT = (P, T) => st.hWater(Math.max(P, st.psat(T) + 0.01), T);
-/** Power [MW] of a flow [kg/s] through an enthalpy drop [kJ/kg] (template 2221). */
+/** Power [MW] of a flow [kg/s] through an enthalpy drop [kJ/kg]. */
 const flowPower = (kgs, dhKj) => (kgs * dhKj) / 1000;
 
 /** Stodola ellipse coefficient K [kg/s per MPa / sqrt(MPa m3/kg)] of a stage group. */
@@ -180,9 +180,9 @@ export const stodolaPin = (K, W, Pout, pvIn) => Math.sqrt(Pout * Pout + (W / K) 
 // ------------------------------------------------------------------ design heat balance
 /**
  * Turbine cycle at MCR for a throttle flow W [kg/s] and an efficiency level etaScale. Returns
- * stage states, extraction flows (templates 2900 / 2910 heater balances), section powers
- * (2220 / 2221 / 2240), the LP expansion end points (2200), condenser pressure (2690) and the
- * cycle heat input (2090).
+ * stage states, extraction flows (heater balances), section powers
+ * by group, the LP expansion end points, condenser pressure and the
+ * cycle heat input.
  */
 function turbineCycle(W, etaScale) {
   const P = P_DES;
@@ -194,7 +194,7 @@ function turbineCycle(W, etaScale) {
   const hE7 = expand(hThr, sThr, P.e7, etaHp);
   const hCrh = expand(hThr, sThr, P.crh, etaHp);
   const Wn2 = nvT.n2Frac * W;
-  // IP: bowl mix of hot reheat and N2 leakage (2350 step 1)
+  // IP: bowl mix of hot reheat and N2 leakage
   const hRh = hPT(P.rh, 538);
   // FW chain temperatures from TTD (outlet) and DCA (drain)
   const sh = (k) => (1 - EXT_LINE_LOSS) * P[HEATER_SPEC[k].ext];
@@ -234,7 +234,7 @@ function turbineCycle(W, etaScale) {
     const etaIp = (TB.designIpEff(nvIp) / 100) * etaScale;
     const hX = expand(hBowl, sBowl, P.cross, etaIp);
     const tX = tPH(P.cross, hX);
-    // DA balance (2910 with the condensate flow unknown): W_fw h_da = Wc h_c + W_hpdr h_d6 + W5 h_x
+    // DA balance (condensate flow unknown): W_fw h_da = Wc h_c + W_hpdr h_d6 + W5 h_x
     const hDa = st.hf(Pda);
     const tLph4 = tOut('LPH4');
     const hC = hLiqPT(Pcep, tLph4);
@@ -242,7 +242,7 @@ function turbineCycle(W, etaScale) {
     const W5 = (W * (hDa - hC) - Whpd * (hD6 - hC)) / (hX - hC);
     const Wlp = Wbowl - W5;
     const Wc = W - Whpd - W5; // condensate through the LP heaters (= Wlp)
-    // LP expansion line (2200 from the crossover, base efficiency scaled)
+    // LP expansion line (from the crossover, base efficiency scaled)
     const nvLp = { reheatBaseEff: nvT.reheatBaseEff * etaScale, reheatDesFlow: toKpph(Wlp), reheatP: toPsia(P.cross), reheatT: toF(tX), annulusArea: nvT.annulusArea };
     // extraction states on the LP line
     const sX = sPH(P.cross, hX);
@@ -281,7 +281,7 @@ function turbineCycle(W, etaScale) {
     }
     const Wexh = Wlp - Wext;
     const ueep = toKj(u.ueep);
-    // powers [MW] by group (2221)
+    // powers [MW] by group
     const pHp = flowPower(W, hThr - h1) + flowPower(W - Wn2, h1 - hE7) + flowPower(W - Wn2 - W7, hE7 - hCrh);
     const pIp = flowPower(Wbowl, hBowl - hX);
     const hL = [hX, lp.LPH4.hE, lp.LPH3.hE, lp.LPH2.hE, lp.LPH1.hE];
@@ -293,7 +293,7 @@ function turbineCycle(W, etaScale) {
       Wg -= ws[i];
     }
     pLp += flowPower(Wg, hL[4] - ueep);
-    // condenser (2600 / 2690): exhaust + LPH1 drains flashing
+    // condenser: exhaust + LPH1 drains flashing
     const hfC = st.hf(Pc);
     const qCond = (Wexh * (ueep - hfC) + drainIn * (lp.LPH1.hD - hfC)) / 1000; // MW
     const cond = condenserDesignPressure(qCond, CW_FLOW_DES, CW_IN_DES);
@@ -305,7 +305,7 @@ function turbineCycle(W, etaScale) {
     if (!cond || Math.abs(cond.P - Pc) < 1e-7) break;
     Pc = cond.P;
   }
-  // generator (2520 / 2530 / 2540)
+  // generator
   const shaft = res.pHp + res.pIp + res.pLp;
   const mech = GN.mechanicalLosses(DES.MVA * 1000);
   const mvar = Math.sqrt(DES.MVA ** 2 - DES.MW ** 2);
@@ -377,7 +377,7 @@ function boilerAvailable() {
   const fg = CB.flueGasFromExcessAir(ult, EA, { specHum: SPEC_HUM });
   const Wg = fuel * fg.WetGasPerlbFuel;
   const heatInHHV = (fuel * LB_PER_KG * 3600 * ult.MassHHVLb) / 1e6; // MMBtu/h
-  const radLoss = BLR.radiationLoss(heatInHHV, heatInHHV, NV_BOILER.cooledWalls); // template 3120 at MCR
+  const radLoss = BLR.radiationLoss(heatInHHV, heatInHHV, NV_BOILER.cooledWalls); // radiation loss at MCR
   const tAirIn = T_AMB_DES + 2; // FD fan temperature rise
   const fl = flame(ult, fg, tAirIn, radLoss);
   const qAbs = (Wg * (fl.avail - gasH(fg, NV_BOILER.tGonlC))) / 1000; // MW
@@ -447,7 +447,7 @@ function turbineConstants(c) {
   };
 }
 
-/** Feedwater heater non-volatile forms from the design heat balance; zone areas for the Tsou model. */
+/** Feedwater heater design data from the design heat balance; zone areas for the Tsou model. */
 function heaterConstants(c) {
   const out = {};
   const spec = HEATER_SPEC;
@@ -494,7 +494,7 @@ function heaterConstants(c) {
     tz[0] = r.tIn;
     const lmtdF = (dt1, dt2) => (Math.abs(dt1 - dt2) < 1e-6 ? dt1 : (dt1 - dt2) / Math.log(dt1 / dt2)) * 1.8;
     nv.condLMTD = lmtdF(tsat - tz[1], tsat - tz[2]);
-    // condensing zone U from the design resistances (template 2990 Part I)
+    // condensing zone U from the design resistances
     const pre = FW.heaterDesign({ ...nv, area: [1, 1, nv.duty[2] > 0 ? 1 : 0] });
     const U2 = 1 / (pre.rsd[1] + 0 + pre.rmd + (0.0002 + pre.rtd[1]) * pre.ratio);
     const aSub = qSub > 0 ? (toMM(qSub) * 1e6) / (s.U[0] * lmtdF(tsat - tz[1], r.tD - tz[0])) : 0;
@@ -544,7 +544,7 @@ function gasPathConstants(c, b) {
     // radiant absorption for the design FEGT: waterwalls (evaporation) + platen superheater
     const qFurn = (Wg * (fl.avail - gasH(fg, FEGT_DES))) / 1000;
     const qPl = qFurn - qWW;
-    // effective radiant surface for that absorption (3690, bisection on area)
+    // effective radiant surface for that absorption (bisection on area)
     let lo = 5000;
     let hi = 400000;
     let fe;

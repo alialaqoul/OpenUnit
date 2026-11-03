@@ -1,12 +1,12 @@
 /**
- * Pumps (water systems) - EtaPRO templates 4000 - 4240. Flows in GPM / kPPH, pressures in psia,
+ * Pumps (water systems). Flows in GPM / kPPH, pressures in psia,
  * temperatures in F, heads in ft, power in HP / kW, speed in rpm.
  *
- * Pump configuration non-volatile data (nv): speed, suctionID, dischID [in], suctLeg, dischLeg
+ * Pump configuration design data (nv): speed, suctionID, dischID [in], suctLeg, dischLeg
  * [ft], motorEff [%], motorPF, motorVolt [V]; pump curve at rated speed: shutoffHead, ratedFlow,
- * ratedHead [ft], bepFlow, bepEff [%] (the EtaPRO pump curve forms).
+ * ratedHead [ft], bepFlow, bepEff [%] (pump curve forms).
  */
-import { StmSpVol, StmPT, StmTP } from './gpsteam.js';
+import { StmSpVol, StmPT, StmTP } from './steamus.js';
 import { HP_PER_KW } from './units.js';
 
 const CUFTHR_TO_GPM = 0.124675;
@@ -22,17 +22,17 @@ function liqVol(P, T) {
   return Number.isFinite(v) && v > 0 ? v : 0.017;
 }
 
-/** Template 4000: water mass flow [kPPH] to volumetric flow [GPM]. */
+/** Water mass flow [kPPH] to volumetric flow [GPM]. */
 export const waterVolFlow = (P, T, kpph) => 1000 * kpph * liqVol(P, T) * CUFTHR_TO_GPM;
-/** Template 4010: volumetric flow [GPM] to mass flow [kPPH]. */
+/** Volumetric flow [GPM] to mass flow [kPPH]. */
 export const waterMassFlow = (P, T, gpm) => gpm / (1000 * liqVol(P, T) * CUFTHR_TO_GPM);
-/** Template 4020: capacity at rated speed [GPM]. */
+/** Capacity at rated speed [GPM]. */
 export const capacityAtRated = (nv, speed, gpm) => gpm * (nv.speed / speed);
-/** Template 4090: head at rated speed [ft]. */
+/** Head at rated speed [ft]. */
 export const headAtRated = (nv, speed, head) => head * (nv.speed / speed) ** 2;
-/** Template 4200: design capacity at actual speed [GPM]. */
+/** Design capacity at actual speed [GPM]. */
 export const capacityAtSpeed = (nv, speed, gpm) => gpm * (speed / nv.speed);
-/** Template 4210: design head at actual speed [ft]. */
+/** Design head at actual speed [ft]. */
 export const headAtSpeed = (nv, speed, head) => head * (speed / nv.speed) ** 2;
 
 const velHead = (gpm, idIn) => {
@@ -40,38 +40,38 @@ const velHead = (gpm, idIn) => {
   const vel = (gpm * GPM_TO_CUFTSEC) / area;
   return (vel * vel) / (2 * G);
 };
-/** Template 4030: suction gauge head [ft]. */
+/** Suction gauge head [ft]. */
 export const suctionHead = (nv, Ps, Ts, gpm, Pbar = 14.696) => 144 * liqVol(Ps, Ts) * (Ps - Pbar) + (nv.suctLeg ?? 0) + velHead(gpm, nv.suctionID);
-/** Template 4050: discharge gauge head [ft]. */
+/** Discharge gauge head [ft]. */
 export const dischargeHead = (nv, Pd, Td, gpm, Pbar = 14.696) => 144 * liqVol(Pd, Td) * (Pd - Pbar) + (nv.dischLeg ?? 0) + velHead(gpm, nv.dischID);
-/** Template 4070: total head [ft]. */
+/** Total head [ft]. */
 export const totalHead = (nv, Ps, Ts, Pd, Td, gpm, Pbar = 14.696) => dischargeHead(nv, Pd, Td, gpm, Pbar) - suctionHead(nv, Ps, Ts, gpm, Pbar);
-/** Template 4100: net positive suction head available [ft]. */
+/** Net positive suction head available [ft]. */
 export const npsh = (nv, Ps, Ts, gpm) => 144 * liqVol(Ps, Ts) * (Ps - StmTP(Ts)) + (nv.suctLeg ?? 0) + velHead(gpm, nv.suctionID);
-/** Template 4120: pump power output [whp]. */
+/** Pump power output [whp]. */
 export function powerOutput(nv, Ps, Ts, Pd, Td, gpm, Pbar = 14.696) {
   const rho = 1 / ((liqVol(Ps, Ts) + liqVol(Pd, Td)) / 2);
   return gpm * GPM_TO_CUFTSEC * totalHead(nv, Ps, Ts, Pd, Td, gpm, Pbar) * rho * LBFFTSEC_TO_HP;
 }
-/** Template 4140: pump power input [HP] from motor power [kW]. */
+/** Pump power input [HP] from motor power [kW]. */
 export const powerInputKw = (nv, kw) => (kw * HP_PER_KW * nv.motorEff) / 100;
-/** Template 4150: motor power [kW] from current [A], and power input [HP]. */
+/** Motor power [kW] from current [A], and power input [HP]. */
 export const motorKwFromAmps = (nv, amps) => (amps * nv.motorPF * nv.motorVolt * Math.sqrt(3)) / 1000;
 export const powerInputAmps = (nv, amps) => powerInputKw(nv, motorKwFromAmps(nv, amps));
-/** Template 4160: pump specific speed. */
+/** Pump specific speed. */
 export const specificSpeed = (nv, Ps, Ts, Pd, Td, gpm, speed, Pbar = 14.696) => (speed * Math.sqrt(gpm)) / totalHead(nv, Ps, Ts, Pd, Td, gpm, Pbar) ** 0.75;
-/** Templates 4180 / 4190: suction specific speed, single / double suction. */
+/** Suction specific speed, single / double suction. */
 export const suctionSpecificSpeed = (speed, gpm, npshr, double = false) => (speed * Math.sqrt(double ? gpm / 2 : gpm)) / npshr ** 0.75;
-/** Template 4220: pump efficiency [%] from motor power [kW]. */
+/** Pump efficiency [%] from motor power [kW]. */
 export const pumpEfficiency = (nv, kw, Ps, Ts, Pd, Td, gpm, Pbar = 14.696) => {
   const pin = powerInputKw(nv, kw);
   return pin > 0 ? (powerOutput(nv, Ps, Ts, Pd, Td, gpm, Pbar) / pin) * 100 : 0;
 };
-/** Template 4240: pump efficiency [%] from motor current [A]. */
+/** Pump efficiency [%] from motor current [A]. */
 export const pumpEfficiencyAmps = (nv, amps, Ps, Ts, Pd, Td, gpm, Pbar = 14.696) => pumpEfficiency(nv, motorKwFromAmps(nv, amps), Ps, Ts, Pd, Td, gpm, Pbar);
 
 /**
- * Pump curve at a speed (affinity laws 4200 / 4210 applied to the rated speed curve):
+ * Pump curve at a speed (affinity laws applied to the rated speed curve):
  * head = H0 (n/n0)^2 - k Q^2, efficiency a parabola through the best efficiency point.
  */
 export function curveHead(nv, gpm, speed = nv.speed) {
@@ -83,5 +83,5 @@ export function curveEfficiency(nv, gpm, speed = nv.speed) {
   const q = capacityAtRated(nv, Math.max(1, speed), gpm) / nv.bepFlow;
   return Math.max(5, nv.bepEff * (1 - (q - 1) ** 2) * (q > 0 ? 1 : 0)) * (gpm > 0 ? 1 : 0);
 }
-/** Hydraulic power [whp] for a flow [GPM], head [ft] and density [lbm/ft3] (4120 step 8). */
+/** Hydraulic power [whp] for a flow [GPM], head [ft] and density [lbm/ft3]. */
 export const hydraulicHp = (gpm, head, rho) => gpm * GPM_TO_CUFTSEC * head * rho * LBFFTSEC_TO_HP;

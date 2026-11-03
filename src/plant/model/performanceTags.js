@@ -1,4 +1,4 @@
-/** EtaPRO performance monitor outputs (published as plant input registers). */
+/** Performance monitor outputs (published as plant input registers). */
 const HEATERS = ['LPH1', 'LPH2', 'LPH3', 'LPH4', 'HPH6', 'HPH7'];
 
 /** name, unit, description, decimals */

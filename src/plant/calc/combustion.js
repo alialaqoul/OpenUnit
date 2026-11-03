@@ -1,13 +1,12 @@
 /**
- * Combustion analysis - EtaPRO template 3 "Subroutine CombustionAnalysis" and the templates that
- * return its results (3000 excess air, 3010 air/fuel ratio, 3015, 3020 / 3030 flue gas per lbm
- * fuel, 3170 air flow, 3260 flue gas flow). No sorbent.
+ * Combustion analysis and its results: excess air, air / fuel ratio, flue gas per lbm fuel, air
+ * flow and flue gas flow. No sorbent.
  *
  * ult: ultimate analysis of the fuel (wt %, fuel.js); excess air in %; specific humidity in
  * lbm water / lbm dry air.
  */
 
-/** Flue gas for a given excess air [%] (template 3 steps 2 - 5 and 7 - 11). */
+/** Flue gas for a given excess air [%]. */
 export function flueGasFromExcessAir(ult, excessAir, { COppm = 0, carbonInAsh = 0, specHum = 0.013 } = {}) {
   const H2OmolHF = ult.Hydrogen / 201.6;
   const H2OmolMF = ult.Moisture / 1801.6;
@@ -63,7 +62,7 @@ export function flueGasFromExcessAir(ult, excessAir, { COppm = 0, carbonInAsh = 
 }
 
 /**
- * Template 3: combustion analysis from the measured excess oxygen [vol %] on a wet (o2Basis = 1)
+ * Combustion analysis from the measured excess oxygen [vol %] on a wet (o2Basis = 1)
  * or dry (0) basis.
  */
 export function combustionAnalysis(ult, excessO2, { COppm = 0, carbonInAsh = 0, specHum = 0.013, o2Basis = 1 } = {}) {
@@ -75,25 +74,25 @@ export function combustionAnalysis(ult, excessO2, { COppm = 0, carbonInAsh = 0, 
   return flueGasFromExcessAir(ult, EA, { COppm, carbonInAsh, specHum });
 }
 
-/** Excess air [%] from the wet air / fuel mass ratio (inverse of template 3010). */
+/** Excess air [%] from the wet air / fuel mass ratio (inverse relation). */
 export function excessAirFromAirFuel(ult, wetAirPerLbFuel, opts = {}) {
   const theor = flueGasFromExcessAir(ult, 0, opts).WetTheorAir;
   return 100 * (wetAirPerLbFuel / theor - 1);
 }
 
-/** Template 3000: excess air [%]. */
+/** Excess air [%]. */
 export const excessAir = (ult, o2, opts) => combustionAnalysis(ult, o2, opts).ExcessAir;
-/** Template 3010: air / fuel ratio, wet air [lbm/lbm fuel]. */
+/** Air / fuel ratio, wet air [lbm/lbm fuel]. */
 export const airFuelRatio = (ult, o2, opts) => combustionAnalysis(ult, o2, opts).WetAirPerlbFuel;
-/** Template 3020: dry flue gas [lbm/lbm fuel]. */
+/** Dry flue gas [lbm/lbm fuel]. */
 export const dryGasPerLbFuel = (ult, o2, opts) => combustionAnalysis(ult, o2, opts).DryGasPerlbFuel;
-/** Template 3030: wet flue gas [lbm/lbm fuel]. */
+/** Wet flue gas [lbm/lbm fuel]. */
 export const wetGasPerLbFuel = (ult, o2, opts) => combustionAnalysis(ult, o2, opts).WetGasPerlbFuel;
-/** Template 3015: estimated flue gas flow [kPPH] from air flow [kPPH] and fuel mass flow [lb/h]. */
+/** Estimated flue gas flow [kPPH] from air flow [kPPH] and fuel mass flow [lb/h]. */
 export const estimatedFlueGasFlow = (ult, airFlowKpph, fuelLbh) => airFlowKpph + (fuelLbh * (100 - ult.Ash)) / 100000;
-/** Template 3170: total air flow [kPPH] from fuel flow [kPPH]. */
+/** Total air flow [kPPH] from fuel flow [kPPH]. */
 export const totalAirFlow = (ult, fuelKpph, o2, opts) => airFuelRatio(ult, o2, opts) * fuelKpph;
-/** Template 3260: total flue gas flow [kPPH] from fuel flow [kPPH]. */
+/** Total flue gas flow [kPPH] from fuel flow [kPPH]. */
 export const totalFlueGasFlow = (ult, fuelKpph, o2, opts) => wetGasPerLbFuel(ult, o2, opts) * fuelKpph;
-/** Template 3161 / 3250: fuel flow [kPPH] from boiler heat input [MMBtu/h]. */
+/** Fuel flow [kPPH] from boiler heat input [MMBtu/h]. */
 export const fuelFlowFromHeatInput = (ult, heatInput) => (1000 * heatInput) / ult.MassHHVLb;

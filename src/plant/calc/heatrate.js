@@ -1,30 +1,29 @@
 /**
- * Unit heat rate and controllable parameter corrections - EtaPRO templates 5010, 5020, 5030,
- * 5090, 5100, 5110, 5120, 5130, 5160, 5170, 5182, 5200 and 2800. Heat rates in Btu/kWh,
+ * Unit heat rate and controllable parameter corrections. Heat rates in Btu/kWh,
  * corrections in %, temperatures in F.
  */
 import { boilerEfficiency } from './boiler.js';
-import { StmHg, LiquidWaterEnthalpy } from './gpsteam.js';
+import { StmHg, LiquidWaterEnthalpy } from './steamus.js';
 import { gasOutWithLeak, gasOutNoLeak } from './airheater.js';
 
-/** Template 5010: actual net unit heat rate. */
+/** Actual net unit heat rate. */
 export const netUnitHeatRate = (heatIn, net) => (net ? (heatIn * 1000) / net : 0);
-/** Template 5020: design net unit heat rate. */
+/** Design net unit heat rate. */
 export const netUnitHeatRateDesign = (GTCHR, BEdes, gross, aux) => (100 * GTCHR * gross) / (BEdes * (gross - aux));
-/** Template 5030: target net unit heat rate. */
+/** Target net unit heat rate. */
 export const targetNetHeatRate = (HRact, corr) => (corr === -100 ? 0 : HRact / (1 + corr / 100));
-/** Template 5090: reference gross TCHR corrected to design. */
+/** Reference gross TCHR corrected to design. */
 export const refTchrCorrToDesign = (corrBPdes, GTCHRref) => GTCHRref * (1 + corrBPdes / 100);
-/** Template 2800: feedwater temperature heat rate correction [%] (corr is % per 5 F). */
+/** Feedwater temperature heat rate correction [%] (corr is % per 5 F). */
 export const fwTempHrCorr = (corr, Tact, Tdes) => (corr * (Tdes - Tact)) / 5;
-/** Template 5130: unit service heat rate correction [%]. */
+/** Unit service heat rate correction [%]. */
 export const unitServiceHrCorr = (MWexp, MWact, MWgross, MWdes) => (100 * (MWact - MWexp)) / (MWgross - MWdes);
-/** Template 5200: minimum achievable (Carnot) heat rate. */
+/** Minimum achievable (Carnot) heat rate. */
 export const carnotHeatRate = (Tsh, Tcw) => 3413 / (1 - (Tcw + 459.67) / (Tsh + 459.67));
 
 /**
- * Template 5100: excess oxygen heat rate correction [%]. m: the measured / design inputs of
- * boilerEfficiency (3130); O2exp the design / target O2; o2Multiplier the safety multiplier.
+ * Excess oxygen heat rate correction [%]. m: the measured / design inputs of
+ * boilerEfficiency; O2exp the design / target O2; o2Multiplier the safety multiplier.
  */
 export function excessO2HrCorr(ult, nv, m, O2exp, o2Multiplier = 1) {
   const act = boilerEfficiency(ult, nv, m).efficiency;
@@ -34,7 +33,7 @@ export function excessO2HrCorr(ult, nv, m, O2exp, o2Multiplier = 1) {
 }
 
 /**
- * Template 5110: AH exit gas temperature heat rate correction [%]. m.tGonl is the actual no-leak
+ * AH exit gas temperature heat rate correction [%]. m.tGonl is the actual no-leak
  * gas outlet; Tnlexp the design / target one. limits: { minAcet, dewPoint, acetBias, dewBias, weight }.
  */
 export function egtHrCorr(ult, nv, m, Tnlexp, leakage, limits = {}) {
@@ -49,14 +48,14 @@ export function egtHrCorr(ult, nv, m, Tnlexp, leakage, limits = {}) {
   return exp ? ((act / exp - 1) * 100 * weight) / 100 : 0;
 }
 
-/** Template 5120: incomplete combustion heat rate correction [%] (CO and carbon in ash at design). */
+/** Incomplete combustion heat rate correction [%] (CO and carbon in ash at design). */
 export function incCombustionHrCorr(ult, nv, m, expected) {
   const act = boilerEfficiency(ult, nv, m).efficiency;
   const exp = boilerEfficiency(ult, nv, { ...m, ...expected }).efficiency;
   return (exp / act - 1) * 100;
 }
 
-/** Template 5160: boiler blowdown heat rate correction [%] (pressures in psia here). */
+/** Boiler blowdown heat rate correction [%] (pressures in psia here). */
 export function blowdownHrCorr(Wbd, Pbd, Wdes, Pfw, Tfw, BE, heatIn) {
   const Hbd = StmHg(Pbd);
   const energy = (Wbd - Wdes) * Hbd;
@@ -65,7 +64,7 @@ export function blowdownHrCorr(Wbd, Pbd, Wdes, Pfw, Tfw, BE, heatIn) {
   return heatIn ? (100 * (fuel / 1000)) / heatIn : 0;
 }
 
-/** Template 5170: target air preheat temperature (air into the air heater) [F]. */
+/** Target air preheat temperature (air into the air heater) [F]. */
 export function targetAirPreheat(Tamb, Tgonl, Tgasin, leakage, Tairin, { minAcet = 150, dewPoint = 130 } = {}) {
   const eff = (Tgasin - Tgonl) / (Tgasin - Tairin);
   const corrOut = Tgasin - eff * (Tgasin - Tamb);
@@ -78,7 +77,7 @@ export function targetAirPreheat(Tamb, Tgonl, Tgasin, leakage, Tairin, { minAcet
 }
 
 /**
- * Template 5182: design / target AH exit gas temperature corrected to actual air inlet, X-ratio and
+ * Design / target AH exit gas temperature corrected to actual air inlet, X-ratio and
  * leakage [F]. ref / online: { airFuel, wetGas, cp } for the reference and on-line fuel; Tref the
  * reference air temperature.
  */

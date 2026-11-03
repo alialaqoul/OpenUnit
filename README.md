@@ -2,7 +2,7 @@
 
 A full-scope training simulator of a 700 MW subcritical drum-type steam unit fired with natural gas. It has three parts:
 
-* a **dynamic process model** built on the **EtaPRO calculation templates** (IAPWS-IF97 steam, combustion analysis, furnace radiation, turbine flow factors and expansion line, Tsou feedwater heaters, HEI condenser): boiler, combustion, turbine, generator, condenser, feedwater heaters and auxiliaries, plus an EtaPRO-style performance monitor ([docs/etapro.md](docs/etapro.md));
+* a **dynamic process model** (IAPWS-IF97 steam, combustion analysis, furnace radiation, turbine flow factors and expansion line, feedwater heaters, condenser): boiler, combustion, turbine, generator, condenser, feedwater heaters and auxiliaries, plus a performance monitor;
 * **8 independent controllers** (a small simulated DCS) that exchange data over **Modbus TCP**. They run either in Node.js or as **IEC 61131-3 programs in OpenPLC soft-PLCs**, whose logic can be watched live in OpenPLC Editor;
 * a **high-performance web HMI** with an instructor station.
 
@@ -120,8 +120,8 @@ connects the PLCs to the plant and to each other. Details: [plc/README.md](plc/R
 config/            network.json (nodes, ports), ic/ (initial-condition snapshots)
 src/common/        Modbus TCP stack, tag database, IAPWS-IF97 steam properties, control blocks
 src/maps/          register maps of every node (single source of truth)
-src/plant/         process model (model/: design heat balance, PlantModel, performance monitor), EtaPRO
-                   template library (etapro/), initial conditions, field I/O node
+src/plant/         process model (model/: design heat balance, PlantModel, performance monitor),
+                   calculation library, initial conditions, field I/O node
 src/controllers/   controller runtime (scan, PID/station/motor/valve blocks) and the 8 controllers
 src/openplc/       OpenPLC mode: I/O bridge, loopback relay for OpenPLC Editor, WSL runtime control
 plc/               IEC 61131-3 sources (src/, lib/) and the generated OpenPLC Editor projects (projects/,

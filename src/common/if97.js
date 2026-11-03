@@ -1,6 +1,5 @@
 /**
- * IAPWS-IF97 water and steam properties (the industrial formulation that EtaPRO's "GP Steam"
- * implements): region 1 (compressed liquid), region 2 (superheated steam) and region 4
+ * IAPWS-IF97 water and steam properties (the industrial formulation): region 1 (compressed liquid), region 2 (superheated steam) and region 4
  * (saturation line), with the backward functions the plant needs obtained by Newton iteration
  * on the forward equations.
  *

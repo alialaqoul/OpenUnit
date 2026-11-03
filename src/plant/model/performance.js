@@ -1,14 +1,14 @@
 import * as st from '../../common/steam.js';
 import { clamp } from '../../common/blocks.js';
 import { design, HEATERS, NV_BOILER, SPEC_HUM, toF, toC, toPsia, toKpph } from './design.js';
-import { combustion as CB, fluegas as FG, boiler as BL, airheater as AH, turbine as TB, generator as GN, condenser as CD, heatrate as HR, gpsteam as GP } from '../etapro/index.js';
+import { combustion as CB, fluegas as FG, boiler as BL, airheater as AH, turbine as TB, generator as GN, condenser as CD, heatrate as HR, steamus as GP } from '../calc/index.js';
 import { DES } from './constants.js';
 import { PERF_TAGS } from './performanceTags.js';
 
 export { PERF_TAGS };
 
 /**
- * EtaPRO-style performance monitor: the calculation templates evaluated on the published
+ * Performance monitor: the performance calculations evaluated on the published
  * measurements (with their noise and drift), as a plant performance system reads the DCS.
  * Results are in SI units: %, degC, K, MW, kJ/kWh, mbar.
  */
@@ -60,7 +60,7 @@ function compute(m, model) {
   const tGasIn = toF(m.ECO_GAS_OUT_T);
   const tGasOut = toF(m.APH_GAS_OUT_T);
 
-  // ---- air heater (3903 leakage from the O2 rise, 3800 / 3810 / 3820 / 3830)
+  // ---- air heater (leakage from the O2 rise, X-ratio, efficiencies, cold end)
   const leak = firing ? clamp(AH.leakageFromO2(m.O2, m.APH_O2_OUT), 0, 50) : 0;
   const tGonl = AH.gasOutNoLeak(tAirIn, tGasOut, leak);
   if (firing) {
@@ -69,11 +69,11 @@ function compute(m, model) {
     r.PERF_AH_GAS_EFF = AH.gasSideEfficiency(tAirIn, tGasIn, tGasOut, leak);
     r.PERF_AH_AIR_EFF = AH.airSideEfficiency(tAirIn, tGasIn, tAirOut);
     r.PERF_AH_TGONL = toC(tGonl);
-    // expected no-leak gas outlet at the design gas side efficiency, corrected to the actual air and gas inlet (5182)
+    // expected no-leak gas outlet at the design gas side efficiency, corrected to the actual air and gas inlet
     r.PERF_AH_TGONL_EXP = toC(tGasIn - (GD.ahEff / 100) * (tGasIn - tAirIn));
   }
 
-  // ---- combustion and boiler efficiency (3000, 3680, 3130 with 3180 absorption)
+  // ---- combustion and boiler efficiency (excess air, flame temperature, efficiency with heat absorption)
   const flows = {
     Wfw: toKpph(m.FW_FLOW / 3.6),
     Wshs: toKpph(m.SH_SPRAY_FLOW / 3.6),
@@ -101,14 +101,14 @@ function compute(m, model) {
     r.PERF_L_CO = be.losses.LCO;
     r.PERF_L_RAD = be.losses.Lrad;
     r.PERF_L_UNACC = be.losses.Luac;
-    // heat rate corrections for the controllable boiler parameters (5100 / 5110)
+    // heat rate corrections for the controllable boiler parameters
     const L = clamp(m.FUEL_HEAT / DES.Q_FUEL, 0.3, 1.1);
     const o2Exp = 2.0 + 2.5 * (1 - L);
     r.PERF_HRC_O2 = HR.excessO2HrCorr(ult, nv, meas, o2Exp, 1);
     if (r.PERF_AH_TGONL_EXP !== undefined) r.PERF_HRC_EGT = HR.egtHrCorr(ult, nv, meas, toF(r.PERF_AH_TGONL_EXP), leak, { minAcet: 140, dewPoint: 110 });
   }
 
-  // ---- turbine (2110, 2340, 2350, 2021, 2400 - 2420)
+  // ---- turbine
   const Pthr = psiaG(m.MS_PRESS);
   const Tthr = toF(m.MS_TEMP);
   const Wthr = toKpph(m.STEAM_FLOW / 3.6);
@@ -124,7 +124,7 @@ function compute(m, model) {
     r.PERF_RH_T_DEV = (toF(m.HRH_TEMP) - TD.nvHp.reheatT) / 1.8;
   }
 
-  // ---- heat rates (2100, 5010, 5030, 5200), generator (2520 / 2530 / 2540)
+  // ---- heat rates, generator
   const mw = m.GEN_MW;
   if (online && firing) {
     const tchr = TB.turbineCycleHeatRate(qAbs, mw); // Btu/kWh
@@ -134,7 +134,7 @@ function compute(m, model) {
     const mech = GN.mechanicalLosses(DES.MVA * 1000);
     const gl = GN.generatorLosses(mw, m.GEN_MVAR, TD.nvHp.genH2Psig, DES.MVA * 1000);
     r.PERF_GEN_EFF = GN.generatorEfficiency(mw, mech, gl);
-    // condenser (2600 duty from the cycle heat balance, 2680, 2690, 2930)
+    // condenser (duty from the cycle heat balance, cleanliness, backpressure, TTD)
     const gpm = (m.CW_FLOW / 3.6 / 997) * 15850.32;
     const qCond = CD.condenserDuty(mw, tchr, r.PERF_GEN_EFF); // MMBtu/h
     r.PERF_COND_DUTY = qCond / 3.412142;
@@ -145,7 +145,7 @@ function compute(m, model) {
     r.PERF_COND_EXP = exp * 3.386389 * 10;
     r.PERF_COND_DEV = m.COND_PRESS - r.PERF_COND_EXP;
     r.PERF_COND_TTD = (CD.terminalTempDiff(toPsia(m.COND_PRESS / 10000), toF(m.CW_OUT_T))) / 1.8;
-    // controllable losses: final FW temperature (2800), backpressure (UEEP sensitivity, ~0.9 %/kPa)
+    // controllable losses: final FW temperature, backpressure (UEEP sensitivity, ~0.9 %/kPa)
     r.PERF_HRC_FWT = HR.fwTempHrCorr(FWT_CORR, toF(m.FW_TEMP), toF(D.cycle.t7));
     r.PERF_HRC_COND = 0.9 * ((m.COND_PRESS - r.PERF_COND_EXP) / 10);
     r.PERF_HRC_TOTAL = (r.PERF_HRC_O2 ?? 0) + (r.PERF_HRC_EGT ?? 0) + r.PERF_HRC_FWT + r.PERF_HRC_COND;
@@ -153,7 +153,7 @@ function compute(m, model) {
     r.PERF_CARNOT_HR = HR.carnotHeatRate(Tthr, toF(m.CW_IN_T)) * KJ_PER_BTU;
   }
 
-  // ---- feedwater heaters (2930 TTD at the extraction flange, drain cooler approach)
+  // ---- feedwater heaters (TTD at the extraction flange, drain cooler approach)
   for (const h of HEATERS) {
     if (m[`${h}_EXT_FLOW`] < 1) continue;
     const pFl = toPsia(m[`${h}_EXT_P`] / 10);

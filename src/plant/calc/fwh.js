@@ -1,21 +1,20 @@
 /**
- * Feedwater heaters - EtaPRO templates 2900 (closed heater extraction flow), 2910 (deaerator
- * extraction flow), 2930 (TTD) and 2990 - 2999 (expected TTD, DCA, extraction flow, temperature
- * rise and outlet temperature by the Tsou method, ASME PTC 12.1). Flows in kPPH, pressures in
+ * Feedwater heaters: closed heater and deaerator extraction flows, TTD, and expected TTD, DCA,
+ * extraction flow, temperature rise and outlet temperature by the Tsou method (ASME PTC 12.1). Flows in kPPH, pressures in
  * psia, temperatures in F, duties in MMBtu/h, areas in ft2.
  *
- * Heater non-volatile data (nv):
+ * Heater design data (nv):
  *   tubes, plugged, tubeOD, tubeID [in], kTube [Btu/h ft F], area: [sub, cond, dsh],
  *   U: [sub, cond, dsh] [Btu/h ft2 F], duty: [sub, cond, dsh],
  *   fwFlow, fwInP, fwInT, tubeDP, stmInP, stmInT, stmInFlow, drainInFlow, drainOutT,
  *   dshShellDP, subShellDP, condLMTD
- * Zones with no area are absent (type 1 / 2 heaters); the template itself covers type 3.
+ * Zones with no area are absent (type 1 / 2 heaters).
  */
-import { StmEnth, StmPT, StmTP, StmVisc, StmCond, StmSpecHeat, StmSpecHeatVap, LiquidWaterEnthalpy } from './gpsteam.js';
+import { StmEnth, StmPT, StmTP, StmVisc, StmCond, StmSpecHeat, StmSpecHeatVap, LiquidWaterEnthalpy } from './steamus.js';
 
 export { terminalTempDiff } from './condenser.js';
 
-/** Liquid enthalpy: StmEnth with the pressure raised above saturation (2900 step 2, "LiqEnth"). */
+/** Liquid enthalpy: StmEnth with the pressure raised above saturation ("LiqEnth"). */
 function liqEnth(P, T) {
   return LiquidWaterEnthalpy(P, T);
 }
@@ -24,7 +23,7 @@ function drainEnth(Pext, T) {
   return LiquidWaterEnthalpy(Pext < Psat + 0.01 ? Psat + 10 : Pext, T);
 }
 
-/** Template 2900: closed feedwater heater extraction flow [kPPH]. */
+/** Closed feedwater heater extraction flow [kPPH]. */
 export function closedHeaterExtraction(a) {
   const fwInH = liqEnth(a.fwInP, a.fwInT);
   const fwOutH = liqEnth(a.fwOutP || a.fwInP, a.fwOutT);
@@ -39,7 +38,7 @@ export function closedHeaterExtraction(a) {
   return Math.max(0, (fwDuty - drainDuty - stm2Duty) / (stmH - drainOutH));
 }
 
-/** Template 2910: deaerator extraction flow [kPPH] when the condensate flow into the DA is known. */
+/** Deaerator extraction flow [kPPH] when the condensate flow into the DA is known. */
 export function daExtraction(a) {
   const fwInH = liqEnth(a.fwInP, a.fwInT);
   const fwOutH = liqEnth(a.fwOutP || a.fwInP, a.fwOutT);
@@ -72,8 +71,8 @@ const RFS = [0.0003, 0, 0.0003];
 const RFT = [0.0002, 0.0002, 0.0002];
 
 /**
- * Template 2990 Part I: design zone resistances and heat capacity data (computed once per
- * heater). plugged = true applies the plugged tubes of 2995 - 2999.
+ * Part I: design zone resistances and heat capacity data (computed once per
+ * heater). plugged = true applies the plugged tubes in the predictions.
  */
 export function heaterDesign(nv, plugged = false) {
   const tubes = plugged ? nv.tubes - (nv.plugged ?? 0) : nv.tubes;
@@ -113,7 +112,7 @@ export function heaterDesign(nv, plugged = false) {
 }
 
 /**
- * Template 2990 Part II: predicted heater performance at off-design conditions.
+ * Part II: predicted heater performance at off-design conditions.
  * a: { fwFlow, fwInP, fwInT, stmP, stmT, drainInFlow, drainInP, drainInT }
  * Returns { fwOutT, ttd, dca, extrFlow, tempRise, drainOutT, U: [..], fwOutP }.
  */

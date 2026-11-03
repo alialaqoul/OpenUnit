@@ -1,14 +1,13 @@
 /**
- * Steam surface condenser - EtaPRO templates 2600 / 2601 / 2642 (duty), 2610 / 2611 (target /
- * design TTD), 2620 (expected pressure), 2630, 2640 / 2641 (CW rise / flow), 2660 (expected
- * backpressure), 2680 (cleanliness), 2690 (target backpressure), 2700 / 2701 (hotwell), 2930 (TTD).
+ * Steam surface condenser: duty, target / design TTD, expected pressure, CW rise / flow, expected
+ * backpressure, cleanliness, target backpressure, hotwell and TTD.
  * HEI Standards for Steam Surface Condensers, 8th ed. Temperatures in F, CW flow in GPM, duty in
  * MMBtu/h, pressures in psia unless stated (inHga).
  *
  * nv: { passes, area [ft2], tubes, od [in], wall [in or BWG], material (1 - 10, see TUBE_MATL),
  *       cleanDesign, cleanTarget (decimal), desHeatLoad [MMBtu/h], subcoolBias [F] }
  */
-import { StmPT, StmTP } from './gpsteam.js';
+import { StmPT, StmTP } from './steamus.js';
 import { psiaToInhg, inhgToPsia } from './units.js';
 
 /** HEI empirical constant vs tube OD [in] (Ref 1 Fig 6-14, CondenserCleanliness calc details). */
@@ -53,7 +52,7 @@ export function heiMaterialFactor(material, wall) {
 /** HEI inlet water temperature correction (Ref 1 Fig 2). */
 export const cwCorrFactor = (Tcw) =>
   Tcw < 65 ? 0.378286 + 0.00905714 * Tcw : -0.164446 + 0.0321184 * Tcw - 0.000283186 * Tcw ** 2 + 8.85624e-7 * Tcw ** 3;
-/** Derived condenser constants (step 1 of the condenser templates). */
+/** Derived condenser constants (condenser design data). */
 export function condenserConstants(nv) {
   const t = wallThickness(nv.wall);
   return {
@@ -74,11 +73,11 @@ export function heiU(nv, Wcw, Tcw, clean, cwCorr = cwCorrFactor(Tcw)) {
   return c.heiCoeff * Math.sqrt(Math.max(0, tubeVelocity(nv, Wcw))) * clean * c.matlCF * cwCorr;
 }
 
-/** Templates 2600 / 2601: condenser duty [MMBtu/h] from the turbine cycle heat balance. */
+/** Condenser duty [MMBtu/h] from the turbine cycle heat balance. */
 export const condenserDuty = (MWgr, TCHR, genEff = 98.5) => MWgr * (TCHR / 3412.142 - 100 / genEff) * 3.412142;
-/** Template 2642: condenser duty [MMBtu/h] from the design heat rate (generator efficiency 100 %). */
+/** Condenser duty [MMBtu/h] from the design heat rate (generator efficiency 100 %). */
 export const condenserDutyDesign = (TCHR, MWgross) => (MWgross * 1000 * (TCHR - 3412.142)) / 1e6;
-/** Template 2630: condenser duty [MMBtu/h] from the target heat rate. */
+/** Condenser duty [MMBtu/h] from the target heat rate. */
 export function condenserDutyTarget(HCtar, HCact, HCtotal, NUHR, MWnet, MWgross, BEdes, genEff) {
   const net = ((1 + HCact / 100) / (1 + HCtar / 100) - 1) * 100;
   const total = HCtotal * (1 + net / 100);
@@ -86,12 +85,12 @@ export function condenserDutyTarget(HCtar, HCact, HCtotal, NUHR, MWnet, MWgross,
   const tchi = (nhrTarget * MWnet * 1000 * BEdes) / 1e8;
   return tchi - (MWgross * (100 / genEff) * 3412.142) / 1000;
 }
-/** Template 2640: CW temperature rise [F]. */
+/** CW temperature rise [F]. */
 export const cwTempRise = (Qcond, Wcw) => (Wcw ? (Qcond * 1e6) / (Wcw * 500) : 0);
-/** Template 2641: CW flow [GPM]. */
+/** CW flow [GPM]. */
 export const cwFlow = (Qcond, Trise) => (Trise ? (Qcond * 1e6) / (Trise * 500) : 0);
 
-/** HEI TTD [F] (2611 step 3, 2660 step 4, 2690 step 3), limited to 5 F. */
+/** HEI TTD [F] limited to 5 F. */
 export function heiTTD(nv, Tcw, Wcw, Trise, clean, cwCorr = cwCorrFactor(Tcw)) {
   const vel = tubeVelocity(nv, Wcw);
   const heatFact = vel > 0 && Wcw > 0 ? (heiU(nv, Wcw, Tcw, clean, cwCorr) * nv.area) / (500 * Wcw) : 1;
@@ -99,17 +98,17 @@ export function heiTTD(nv, Tcw, Wcw, Trise, clean, cwCorr = cwCorrFactor(Tcw)) {
   const itd = e !== 1 ? Trise / (1 - 1 / e) : 0;
   return Math.max(5.0, Tcw + itd - Trise - Tcw);
 }
-/** Template 2611: design condenser TTD [F]. */
+/** Design condenser TTD [F]. */
 export const designTTD = (nv, Tcw, Wcw, Trise) => heiTTD(nv, Tcw, Wcw, Trise, nv.cleanDesign);
 
 // HEI Fig 4 - best achievable (cutoff) pressure and the pressure at zero heat load [inHga] vs CW
-// inlet temperature. The 7-coefficient polynomials are not in the template documents; these are
+// inlet temperature. The 7-coefficient polynomials are not published; these are
 // the HEI curve shapes: cutoff = saturation at (Tcw + 13 F) above 1.0 inHga, zero load = Tcw + 3 F.
 const cutoffPress = (Tcw) => Math.max(1.0, psiaToInhg(StmTP(Tcw + 13)));
 const zeroLoadPress = (Tcw) => psiaToInhg(StmTP(Tcw + 3));
 
 /**
- * Template 2610: target condenser TTD [F] using the target cleanliness, including the HEI
+ * Target condenser TTD [F] using the target cleanliness, including the HEI
  * low-load region below the cutoff pressure (steps 2 - 10). Returns also the predicted
  * condenser pressure [inHga] of step 9.
  */
@@ -139,10 +138,10 @@ export function targetTTD(nv, Tcw, Wcw, Ttar, clean = nv.cleanTarget) {
   return { ttd: heiTTD(nv, Tcw, Wcw, Ttar, clean), condP };
 }
 
-/** Template 2620: expected condenser pressure [inHga]. */
+/** Expected condenser pressure [inHga]. */
 export const expectedCondPressure = (Tcw, Trise, TTD) => Math.round(psiaToInhg(StmTP(Tcw + Trise + TTD)) * 100) / 100;
 
-/** Template 2660: expected condenser backpressure [inHga] at a CW flow and cleanliness [%]. */
+/** Expected condenser backpressure [inHga] at a CW flow and cleanliness [%]. */
 export function expectedBackpressure(nv, TCHR, MWgr, Tcw, Wcw, cleanPct, cwCorr = cwCorrFactor(Tcw)) {
   const Q = condenserDutyDesign(TCHR, MWgr);
   const rise = cwTempRise(Q, Wcw);
@@ -150,20 +149,20 @@ export function expectedBackpressure(nv, TCHR, MWgr, Tcw, Wcw, cleanPct, cwCorr 
   return psiaToInhg(StmTP(Tcw + rise + ttd));
 }
 
-/** Template 2690: target condenser backpressure [inHga] from a heat load [MMBtu/h]. */
+/** Target condenser backpressure [inHga] from a heat load [MMBtu/h]. */
 export function targetBackpressure(nv, Qcond, Wcw, Tcw, clean = nv.cleanTarget) {
   const rise = Wcw ? cwTempRise(Qcond, Wcw) : 1;
   const ttd = heiTTD(nv, Tcw, Wcw, rise, clean);
   return Math.round(psiaToInhg(StmTP(Tcw + rise + ttd)) * 100) / 100;
 }
-/** Steady-state condenser pressure [inHga] from duty (unrounded 2690 - used by the process model). */
+/** Steady-state condenser pressure [inHga] from duty (unrounded - used by the process model). */
 export function condenserPressure(nv, Qcond, Wcw, Tcw, clean) {
   const rise = cwTempRise(Qcond, Wcw);
   const ttd = heiTTD(nv, Tcw, Wcw, rise, clean);
   return { pInHg: psiaToInhg(StmTP(Tcw + rise + ttd)), rise, ttd, tsat: Tcw + rise + ttd };
 }
 
-/** Template 2680: actual condenser cleanliness factor [%]. */
+/** Actual condenser cleanliness factor [%]. */
 export function condenserCleanliness(nv, Tin, Wcw, Tout, condPresInHg, Qcond, cwCorr = cwCorrFactor(Tin)) {
   const Tsat = StmPT(inhgToPsia(condPresInHg));
   const denom = (Tsat - Tin) / (Tsat - Tout);
@@ -174,8 +173,8 @@ export function condenserCleanliness(nv, Tin, Wcw, Tout, condPresInHg, Qcond, cw
   return Ud !== 0 ? (100 * Ut) / Ud : 0;
 }
 
-/** Template 2700: design hotwell temperature [F]; 2701: target hotwell temperature. */
+/** Design hotwell temperature [F]; target hotwell temperature. */
 export const designHotwellTemp = (pInHg) => StmPT(inhgToPsia(pInHg));
 export const targetHotwellTemp = (Tdes, nv) => Tdes - (nv.subcoolBias ?? 0);
-/** Template 2930: condenser / heater TTD [F]. */
+/** Condenser / heater TTD [F]. */
 export const terminalTempDiff = (Pflange, Tout) => StmPT(Pflange) - Tout;

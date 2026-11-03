@@ -1,6 +1,6 @@
 /**
- * "GP Steam": the steam property calls of the EtaPRO templates, in their units (psia, degF,
- * Btu/lbm, ft3/lbm), with the input guards the templates describe (superheated inputs at least
+ * Steam property calls in US customary units (psia, degF, Btu/lbm, ft3/lbm), with input
+ * guards (superheated inputs at least
  * Tsat + 0.01 F, liquid inputs at least Psat + 0.1 psi). Built on the IAPWS-IF97 properties.
  */
 import * as st from '../../common/steam.js';

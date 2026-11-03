@@ -3,7 +3,7 @@ import { PID_MODE } from '../common/tags.js';
 import { median3, clamp, fgen } from '../common/blocks.js';
 
 const GAS_LHV = 49; // MJ/kg design value used by the controls
-const Q_MCR = 1620; // MW fuel heat (LHV) at 100 % boiler demand - EtaPRO design heat balance
+const Q_MCR = 1620; // MW fuel heat (LHV) at 100 % boiler demand - design heat balance
 const GAS_MCR = (Q_MCR / GAS_LHV) * 3.6; // t/h at 100 % boiler demand (~119 t/h)
 const AIR_MCR = 2247; // t/h at 100 % boiler demand
 const STOICH = 17.15; // kg air / kg gas

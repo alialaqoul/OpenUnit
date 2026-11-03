@@ -6,25 +6,25 @@ import {
   design, fuelAnalysis, SPEC_HUM, NV_BOILER, HEATERS, gasH, gasT, gasSection, sectionUA, airHeaterHX, ahUA, flame, availEnergy, stodolaPin,
   toF, toC, toPsia, toKpph, toKgs, toKj,
 } from './design.js';
-import { combustion as CB, furnace as FN, turbine as TB, generator as GN, condenser as CD, fwh as FW, airheater as AH, boiler as BL, pumps as PU } from '../etapro/index.js';
+import { combustion as CB, furnace as FN, turbine as TB, generator as GN, condenser as CD, fwh as FW, airheater as AH, boiler as BL, pumps as PU } from '../calc/index.js';
 import { PerformanceMonitor } from './performance.js';
 
 /**
- * Process model of the unit. The process equations are the EtaPRO calculation templates
- * (src/plant/etapro) and the constants come from the design heat balance (design.js):
+ * Process model of the unit. The process equations come from the calculation library
+ * (src/plant/calc) and the constants from the design heat balance (design.js):
  *
- *   combustion       template 3 combustion analysis, excess air from the air / fuel ratio (3010)
- *   furnace          3680 adiabatic flame temperature, 3690 radiant absorption and exit gas temperature
- *   convective pass  3305 flue gas enthalpy, 3650 section heat transfer (clean htc ~ W^0.6 GIT^0.6)
- *   air heater       3800 / 3810 X-ratio and effectiveness, 3830 / 3903 leakage
- *   turbine          2080 stage flow factors (Stodola form), 2340 / 2350 / 2200 section efficiencies,
- *                    ELEP / UEEP with exhaust loss, 2221 stage power, 2520 / 2530 losses
- *   feedwater heaters 2990 Tsou zone model, 2900 / 2910 heater balances
- *   condenser        2690 HEI (cleanliness, CW temperature correction, tube velocity)
- *   pumps / fans     4120 / 4220, 7400 - 7402
+ *   combustion       combustion analysis, excess air from the air / fuel ratio
+ *   furnace          adiabatic flame temperature, radiant absorption and exit gas temperature
+ *   convective pass  flue gas enthalpy, section heat transfer (clean htc ~ W^0.6 GIT^0.6)
+ *   air heater       X-ratio and effectiveness, leakage
+ *   turbine          stage flow factors (Stodola form), section efficiencies,
+ *                    ELEP / UEEP with exhaust loss, stage power, generator losses
+ *   feedwater heaters Tsou zone model, heater balances
+ *   condenser        HEI (cleanliness, CW temperature correction, tube velocity)
+ *   pumps / fans     pump power, fan total pressure and power
  *
  * The dynamic states (storage of mass and energy) are integrated every step; the iterative
- * template calculations that set slowly varying quantities (expansion line, heater outlet
+ * calculations that set slowly varying quantities (expansion line, heater outlet
  * temperatures, condenser saturation) run in a slower loop.
  */
 
@@ -34,19 +34,19 @@ const D = design();
 const TD = D.turbine;
 const GD = D.gas;
 const LB = 2.20462262;
-const SLOW_DT = 0.5; // s, period of the template (iterative) calculations
-// Burner tilt moves the flame centre (3690 burner height): 0.015 of the furnace height per degree,
+const SLOW_DT = 0.5; // s, period of the slow (iterative) calculations
+// Burner tilt moves the flame centre (burner height): 0.015 of the furnace height per degree,
 // +-0.45 at +-30 deg, i.e. about 1 K reheat temperature per degree at full load.
 const TILT_X = 0.015;
 const M_ECO = 60000; // kg economizer water inventory
 // Casing / penthouse loss of a superheater or reheater section [MW/K]: about 1.5 MW each at full load
-// (part of the template 3120 radiation loss), a cooling time constant of hours when boxed up.
+// (part of the boiler radiation loss), a cooling time constant of hours when boxed up.
 const AMB_LOSS = 0.003;
 const HTR_DES = Object.fromEntries(HEATERS.map((n) => [n, FW.heaterDesign(D.heaters[n].nv)]));
 const LP_HTRS = ['LPH1', 'LPH2', 'LPH3', 'LPH4'];
 /** Pure air (as a "flue gas" composition) for unfired gas paths. */
 const FG_AIR = CB.flueGasFromExcessAir(fuelAnalysis(DES.GAS_LHV), 1e5, { specHum: SPEC_HUM });
-/** Boiler feed pump (EtaPRO pump form): rated speed and curve at rated speed. */
+/** Boiler feed pump (pump curve form): rated speed and curve at rated speed. */
 const BFP_NV = { speed: 5000, bepFlow: 320, bepEff: 82 };
 const FAN = {
   FD: { dp: 16, eff: 0.84, dens: 1.16 }, // inH2O total pressure rise at design flow, efficiency, kg/m3
@@ -63,7 +63,7 @@ function phi(r) {
 
 const lagTo = (cur, target, tau, dt) => cur + (target - cur) * Math.min(1, dt / Math.max(tau, 1e-6));
 const wrap180 = (a) => ((((a + 180) % 360) + 360) % 360) - 180;
-/** Expansion end point [kJ/kg] at Pout from (h, s) at enthalpy-drop efficiency eta (template 2140). */
+/** Expansion end point [kJ/kg] at Pout from (h, s) at enthalpy-drop efficiency eta. */
 const expand = (h, s, Pout, eta) => h - eta * (h - st.hPS(Pout, s));
 /** Efficiency fall-off of a stage group at very low volumetric flow (ventilation). */
 const lowFlow = (r) => clamp(r / 0.04, 0, 1) ** 0.5;
@@ -244,7 +244,7 @@ export class PlantModel {
     this.#boiler(dt, u);
     this.#turbine(dt);
     if (this.slowAcc >= SLOW_DT) {
-      this.#templates(this.slowAcc, u);
+      this.#slowCalcs(this.slowAcc, u);
       this.slowAcc = 0;
     }
     this.#heaters(dt);
@@ -465,7 +465,7 @@ export class PlantModel {
     const airTotal = s.fdFlow.A + s.fdFlow.B + inleak;
     s.airFlow = lagTo(s.airFlow, airTotal, 0.5, dt);
 
-    // Combustion analysis (template 3): excess air from the wet air / fuel ratio (inverse of 3010),
+    // Combustion analysis: excess air from the wet air / fuel ratio (inverse relation),
     // flue gas composition and the wet O2 at the economizer outlet.
     let ea = 1000;
     if (burn > 0.05) ea = CB.excessAirFromAirFuel(ult, s.airFlow / burn, { specHum: SPEC_HUM });
@@ -555,7 +555,7 @@ export class PlantModel {
     f.bfpQ = {};
     f.bfpAmps = {};
     f.bfpKw = 0;
-    // Pump power (templates 4120 / 4220): hydraulic power over the curve efficiency at the speed
+    // Pump power: hydraulic power over the curve efficiency at the speed
     const rho = st.rhoLiq(s.Tda);
     const dpPa = Math.max(0, Ph - Ps) * 1e6;
     const headFt = (dpPa / (rho * 9.80665)) * 3.2808399;
@@ -629,7 +629,7 @@ export class PlantModel {
     f.tubeLeak = mLeak;
     f.mBd = mEbd + mCbd;
 
-    // ---- furnace (templates 3680 / 3690)
+    // ---- furnace
     const fg = f.fg;
     const Wg = Math.max(0.1, f.Wg);
     const firing = f.qFuel > 2 && f.burn > 0.05;
@@ -639,7 +639,7 @@ export class PlantModel {
       const radLoss = BL.radiationLoss(f.qHHV * 3.412142, GD.heatInHHV, NV_BOILER.cooledWalls);
       f.radLoss = radLoss;
       hIn = availEnergy(f.ult, fg, s.tAirHot, radLoss);
-      // radiant absorption from the template loop (3690), scaled to the fuel burnt since then
+      // radiant absorption from the slow loop, scaled to the fuel burnt since then
       if (!(f.furn?.burn > 0.05)) this.#furnace();
       qRadTarget = f.furn.q * (f.burn / f.furn.burn);
     } else {
@@ -659,7 +659,7 @@ export class PlantModel {
     f.qww = qww;
     f.qPl = qPl;
 
-    // ---- convective pass: final SH bank -> RH -> primary SH -> economizer (3305 / 3650)
+    // ---- convective pass: final SH bank -> RH -> primary SH -> economizer
     const Psh1 = (Pd + Pms) / 2;
     const tg0 = s.fegt;
     const ua = (k, tgIn, i) => sectionUA(GD.UA[k], Wg, GD.Wg, tgIn, GD.tg[i]);
@@ -674,7 +674,7 @@ export class PlantModel {
     const secE = gasSection(fg, Wg, sec1.TgOut, (s.Tfw + tEco) / 2, ua('eco', sec1.TgOut, 3));
     f.tg = [tg0, sec2.TgOut, secR.TgOut, sec1.TgOut, secE.TgOut];
 
-    // ---- air heaters (regenerative, 3800 / 3810; leakage 3830 / 3903)
+    // ---- air heaters (regenerative, with leakage)
     const nAph = (s.mot.APH_A.run ? 1 : 0) + (s.mot.APH_B.run ? 1 : 0);
     const tAirIn = s.amb + (s.fdFlow.A + s.fdFlow.B > 5 ? 2 : 0);
     const ahU = ahUA(GD.uaAh, Wg, GD.Wg, s.airFlow, GD.Wa) * (nAph / 2);
@@ -684,7 +684,7 @@ export class PlantModel {
     s.tAirHot = lagTo(s.tAirHot, ah.TaOut, 60, dt);
     f.ahLeak = nAph > 0 ? NV_BOILER.ahLeakage : 0;
     f.tStack = toC(AH.gasOutWithLeak(toF(ah.Tgonl), toF(tAirIn), f.ahLeak));
-    f.o2AhOut = (f.ahLeak * 21 + 90 * s.o2) / (f.ahLeak + 90); // inverse of template 3903
+    f.o2AhOut = (f.ahLeak * 21 + 90 * s.o2) / (f.ahLeak + 90); // inverse of the leakage relation
 
     // ---- economizer
     const qFw = f.qMain ?? 0;
@@ -755,7 +755,7 @@ export class PlantModel {
     f.qAbs = qww + f.qEcoUsed + Math.max(0, f.qSh) + Math.max(0, f.qRh);
   }
 
-  /** Templates 3680 / 3690: flame temperature and radiant absorption [MW] for the current firing. */
+  /** Flame temperature and radiant absorption [MW] for the current firing. */
   #furnace() {
     const s = this.s;
     const f = this.f;
@@ -808,7 +808,7 @@ export class PlantModel {
     f.Pcrh = Pcrh;
     f.mIp = mIp;
     f.mLpb = mLpb;
-    // HP stage pressures from the stage flow coefficients (2080, Stodola form), exhaust upwards
+    // HP stage pressures from the stage flow coefficients (Stodola form), exhaust upwards
     // (the first stage pressure is relaxed: valve flow and stage pressure are solved one step apart)
     f.PE7 = stodolaPin(TD.kHp2, W2, Pcrh, x.pv.hp2);
     const p1 = stodolaPin(TD.kHp1, mHp, f.PE7, x.pv.hp1);
@@ -834,7 +834,7 @@ export class PlantModel {
     f.gLp = g;
     f.Wbowl = Wbowl;
 
-    // Section power (template 2221) from the expansion line of the template loop
+    // Section power from the expansion line of the slow loop
     const pHp = (mHp * x.dh.hp0 + (mHp - Wn2) * x.dh.hp1 + W2 * x.dh.hp2) / 1000;
     const pIp = (Wbowl * x.dh.ip) / 1000;
     let pLp = 0;
@@ -853,7 +853,7 @@ export class PlantModel {
     f.mCrhIn = mCrhIn;
     f.hCrhMix = mCrhIn > 0.1 ? (mHpExh * x.hCrh + f.mHpb * f.hHpbOut) / Math.max(0.1, mHpExh + f.mHpb) : st.hSteam(Pcrh, s.Trh);
 
-    // Rotor losses [MW]: bearings (2530 ~ n^2), blade windage without steam flow
+    // Rotor losses [MW]: bearings (~ n^2), blade windage without steam flow
     const pCondKpa = Pcond * 1000;
     const pWind = nr ** 3 * (0.3 + 12 * (pCondKpa / 101.3)) * Math.exp(-g[4] / 30) + 0.5 * nr ** 3 * Math.exp(-mHp / 20);
     const pBrg = D.cycle.mech * nr * nr;
@@ -862,7 +862,7 @@ export class PlantModel {
     f.lossMech = losses;
 
     if (s.gcb) {
-      // generator losses (template 2520) at the last output
+      // generator losses at the last output
       const genLoss = GN.generatorLosses(Math.max(1, f.genMW ?? s.Pe), f.genMVAR ?? 0, TD.nvHp.genH2Psig, DES.MVA * 1000);
       f.genLoss = genLoss;
       s.n = s.fg * 60;
@@ -882,7 +882,7 @@ export class PlantModel {
     }
     if (s.n > 10 || !s.mot.TG.run) s.tgEng = false;
 
-    // Condenser heat (2600): exhaust at the used energy end point, LPH1 drains, LP bypass
+    // Condenser heat: exhaust at the used energy end point, LPH1 drains, LP bypass
     const hfc = st.hLiq(s.Tc);
     const hLpbIn = mLpb > 0.01 ? Math.min(st.hSteam(Prh, s.Trh), 2900) : 0;
     const drains = ext.LPH1.ext + ext.LPH2.ext + ext.LPH3.ext + ext.LPH4.ext;
@@ -893,7 +893,7 @@ export class PlantModel {
     f.hph = hph;
   }
 
-  /** Expansion line at the design point (used until the template loop has run). */
+  /** Expansion line at the design point (used until the slow loop has run). */
   #designExpansion() {
     const c = D.cycle;
     return {
@@ -913,15 +913,15 @@ export class PlantModel {
     };
   }
 
-  // ------------------------------------------------------------------ template (iterative) calculations
-  #templates(dtSlow, u) {
+  // ------------------------------------------------------------------ slow (iterative) calculations
+  #slowCalcs(dtSlow, u) {
     const s = this.s;
     const f = this.f;
     const Pcond = Math.max(0.0008, (f.PcondKpa ?? 7) / 1000);
     const x = { pv: { ...TD.pvDes, lp: [...TD.pvDes.lp] }, dh: { lp: [0, 0, 0, 0, 0] }, h: {}, tExt: {} };
     if (f.qFuel > 2 && f.burn > 0.05) this.#furnace();
 
-    // ---- HP expansion (2340 design efficiency vs flow, partial arc)
+    // ---- HP expansion (design efficiency vs flow, partial arc)
     const Pms = f.Pms;
     const Tms = Math.max(s.Tsh2, st.tsat(Pms) + 0.5);
     const hThr = st.hSteam(Pms, Tms);
@@ -947,7 +947,7 @@ export class PlantModel {
     x.etaHp = etaHp;
     x.h = { thr: hThr, h1, e7: hE7, crh: hCrh };
 
-    // ---- IP expansion (2350 design efficiency, N2 leakage mixed into the bowl)
+    // ---- IP expansion (design efficiency, N2 leakage mixed into the bowl)
     const Prh = Math.max(s.Prh, Pcond * 1.01);
     const Trh = Math.max(s.Trh, st.tsat(Prh) + 0.5);
     const hRh = st.hSteam(Prh, Trh);
@@ -966,7 +966,7 @@ export class PlantModel {
     x.h.bowl = hBowl;
     x.h.x = hX;
 
-    // ---- LP expansion: ELEP / UEEP with exhaust loss (2200) from the crossover
+    // ---- LP expansion: ELEP / UEEP with exhaust loss from the crossover
     const sX = st.sPH(Px, hX);
     const PE = f.PE ?? { e4: TD.P.e4, e3: TD.P.e3, e2: TD.P.e2, e1: TD.P.e1 };
     const pts = [PE.e4, PE.e3, PE.e2, PE.e1].map((p) => Math.min(p, Px * 0.999));
@@ -1005,10 +1005,10 @@ export class PlantModel {
     x.pExt = { HPH7: PE7, HPH6: Pcrh, LPH4: pts[0], LPH3: pts[1], LPH2: pts[2], LPH1: pts[3] };
     f.exp = x;
 
-    // ---- feedwater heaters: Tsou prediction (2990) -> outlet temperature, drain temperature and extraction flow targets
+    // ---- feedwater heaters: Tsou prediction -> outlet temperature, drain temperature and extraction flow targets
     this.#heaterTargets();
 
-    // ---- condenser (2690 HEI): saturation temperature for the heat load at the CW flow and cleanliness
+    // ---- condenser (HEI): saturation temperature for the heat load at the CW flow and cleanliness
     const Q = (f.qCond ?? 0) * 3.412142;
     const gpm = (s.mcw / 997) * 15850.32;
     const clean = (u.MF_COND_FOULING ? 0.45 : 1) * D.condenser.nv.cleanDesign;
@@ -1026,7 +1026,7 @@ export class PlantModel {
     void dtSlow;
   }
 
-  /** Heater predictions (template 2990 Tsou, US units) for the current flows and steam conditions. */
+  /** Heater predictions (US units) for the current flows and steam conditions. */
   #heaterTargets() {
     const s = this.s;
     const f = this.f;
@@ -1125,7 +1125,7 @@ export class PlantModel {
     s.Mhw = Math.max(0, s.Mhw + (f.mCondIn + makeup - mCep - dump) * dt);
 
     // Deaerator: condensate from LPH4, HP heater drains, extraction steam from the crossover
-    // (template 2910 balance) or pegging steam
+    // or pegging steam
     const peg = (s.act.PEG / 100) * 12;
     const hpDrains = f.hph ? s.htr.HPH6.ext + s.htr.HPH7.ext : 0;
     const extAvail = 0.92 * s.Pcross > P_ATM + 0.02 && (f.mIp ?? 0) > 5;
@@ -1250,7 +1250,7 @@ export class PlantModel {
     s.Thp = tSteamHp !== null ? lagTo(s.Thp, tSteamHp, 1800 * Math.pow(DES.MS_FLOW / Math.max(flowHp, 30), 0.3), dt) : lagTo(s.Thp, s.amb, 150000, dt);
     s.Tip = f.mIp > 2 ? lagTo(s.Tip, s.Trh - 15, 2000 * Math.pow(TD.Wrh / Math.max(f.mIp, 30), 0.3), dt) : lagTo(s.Tip, s.amb, 120000, dt);
 
-    // Fan power (templates 7400 - 7402): total pressure ~ flow^2, air / gas density 3303 / 3304
+    // Fan power: total pressure ~ flow^2, air / gas density
     f.fanKw = {};
     for (const p of ['A', 'B']) {
       const wa = s.fdFlow[p];
@@ -1500,7 +1500,7 @@ export class PlantModel {
     out.DA_EXT_FLOW = th(s.extDA);
     out.LPH1_FW_IN_T = s.Tc + 0.3;
 
-    // EtaPRO performance calculations from the measurements (2 s cycle)
+    // performance calculations from the measurements (2 s cycle)
     Object.assign(out, this.perf.update(s.t, out, this));
     out.BOILER_EFF = out.PERF_BLR_EFF;
     return out;

@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { units, gpsteam as GP, fuel, combustion as CB, fluegas as FG, boiler as BL, airheater as AH, turbine as TB, generator as GN, condenser as CD, fwh as FW, pumps as PU, fans as FA, heatrate as HR } from '../src/plant/etapro/index.js';
+import { units, steamus as GP, fuel, combustion as CB, fluegas as FG, boiler as BL, airheater as AH, turbine as TB, generator as GN, condenser as CD, fwh as FW, pumps as PU, fans as FA, heatrate as HR } from '../src/plant/calc/index.js';
 import { region1, region2 } from '../src/common/if97.js';
 import { design, HEATERS } from '../src/plant/model/design.js';
 
 const GAS = { Methane: 96, Ethane: 2.2, Propane: 0.4, Nitrogen: 0.9, CarbonDioxide: 0.5 };
 
-describe('IAPWS-IF97 ("GP Steam")', () => {
+describe('IAPWS-IF97 steam properties', () => {
   it('reproduces the IF97 verification values of regions 1 and 2', () => {
     const a = region1(3, 300);
     expect(a.v).toBeCloseTo(0.100215168e-2, 10);
@@ -14,20 +14,20 @@ describe('IAPWS-IF97 ("GP Steam")', () => {
     expect(b.v).toBeCloseTo(0.394913866e2, 5);
     expect(b.h).toBeCloseTo(0.254991145e4, 4);
   });
-  it('gives template-unit steam properties', () => {
+  it('gives US-unit steam properties', () => {
     expect(GP.StmPT(14.696)).toBeCloseTo(212.0, 0);
     expect(GP.StmEnth(2400, 1000)).toBeCloseTo(1461.5, 0);
     expect(GP.LiquidWaterEnthalpy(2900, 400)).toBeCloseTo(378.1, 0);
   });
 });
 
-describe('combustion and boiler templates', () => {
+describe('combustion and boiler calculations', () => {
   const ult = fuel.fuelGasVolumeToMass(GAS);
   it('converts the gas analysis to an ultimate analysis (3165)', () => {
     expect(units.btulbToKjkg(ult.MassLHVLb) / 1000).toBeCloseTo(48.5, 1);
     expect(ult.Carbon + ult.Hydrogen + ult.Oxygen + ult.Nitrogen + ult.Sulfur).toBeCloseTo(100, 1);
   });
-  it('relates excess oxygen and excess air (template 3)', () => {
+  it('relates excess oxygen and excess air', () => {
     const fg = CB.combustionAnalysis(ult, 2.0, { o2Basis: 1 });
     expect(fg.ExcessAir).toBeGreaterThan(10);
     expect(fg.ExcessAir).toBeLessThan(13);
@@ -50,7 +50,7 @@ describe('combustion and boiler templates', () => {
   });
 });
 
-describe('turbine, generator, condenser and heater templates', () => {
+describe('turbine, generator, condenser and heater calculations', () => {
   it('computes enthalpy-drop efficiency and its inverse (2110 / 2140)', () => {
     const h = TB.exhEnthFromEff(2400, 1000, 600, 86);
     const t = GP.StmTempPH(600, h);

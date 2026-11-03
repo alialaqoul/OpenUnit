@@ -109,35 +109,34 @@ and the HMI only ever see the converted values. The grid runs at 60 Hz, giving 3
 
 ## Process model
 
-The process equations are the **EtaPRO calculation templates** (folder "97) EtaPRO Calculation
-Templates"), implemented one function per template in `src/plant/etapro/` and calibrated by the design
-heat balance in `src/plant/model/design.js`. [etapro.md](etapro.md) maps every template to its use and
-lists the approximations made where the template documents do not give a figure's coefficients.
+The process equations come from a library of thermal performance calculations in `src/plant/calc/`,
+calibrated by the design heat balance in `src/plant/model/design.js`. [calculations.md](calculations.md)
+maps every calculation to its use and lists the approximations made where coefficients are not published.
 
 `src/plant/model/PlantModel.js` advances in fixed 50 ms steps (sub-stepped in fast time); the
-iterative template calculations (expansion line, Tsou heaters, HEI condenser, furnace radiation) run
+iterative calculations (expansion line, Tsou heaters, HEI condenser, furnace radiation) run
 every 0.5 s of simulation time. Main states:
 
 | Subsystem | States / method |
 |---|---|
-| Combustion | template 3 combustion analysis from the air / fuel ratio (inverse 3010): excess air, wet O2, flue gas composition |
-| Furnace | 3680 available energy and flame temperature, 3690 radiant absorption (normative furnace method with the FlameEmissivity routine); burner tilt moves the flame centre; absorption split waterwalls / platen SH |
-| Convective pass | final SH bank, RH, primary SH, economizer: gas enthalpy (3305, JANAF), UA from the design balance scaled by 3650 (W^0.6, GIT^0.6) |
-| Air heater | regenerative counter-flow effectiveness, X-ratio / gas side efficiency (3800 / 3810), leakage (3830 / 3903) |
+| Combustion | combustion analysis from the air / fuel ratio: excess air, wet O2, flue gas composition |
+| Furnace | available energy and flame temperature, radiant absorption (normative furnace method with a flame emissivity model); burner tilt moves the flame centre; absorption split waterwalls / platen SH |
+| Convective pass | final SH bank, RH, primary SH, economizer: gas enthalpy (JANAF), UA from the design balance scaled by W^0.6, GIT^0.6 |
+| Air heater | regenerative counter-flow effectiveness, X-ratio / gas side efficiency, leakage |
 | Drum & evaporator | saturation temperature (energy balance incl. metal), water mass, swell (steam fraction + dP/dt flashing) |
 | Superheaters / reheater | metal-steam node temperatures driven by the gas path duties |
-| Turbine | governor valves into the first stage; stage pressures from the 2080 stage flow factors (Stodola form); HP 2340 / IP 2350 / LP 2200 efficiencies with ELEP / UEEP and exhaust loss; N2 packing leakage; 2221 stage power; 2520 / 2530 losses |
-| Feedwater heaters | LPH1-4, DA, HPH6-7: Tsou three-zone prediction (2990) for outlet / drain temperature and extraction flow, cascading drains; DA balance 2910 |
-| Condenser | HEI (2690): tube velocity, inlet temperature and material corrections, cleanliness; air partial pressure vs. vacuum pump removal |
-| Pumps / fans | BFP curve with affinity laws, 4120 / 4220 power; fans 7400 - 7402 |
+| Turbine | governor valves into the first stage; stage pressures from the stage flow factors (Stodola form); HP / IP / LP efficiencies with ELEP / UEEP and exhaust loss; N2 packing leakage; stage power; generator and mechanical losses |
+| Feedwater heaters | LPH1-4, DA, HPH6-7: Tsou three-zone prediction for outlet / drain temperature and extraction flow, cascading drains; DA heat balance |
+| Condenser | HEI: tube velocity, inlet temperature and material corrections, cleanliness; air partial pressure vs. vacuum pump removal |
+| Pumps / fans | BFP curve with affinity laws and pump power; fan total pressure and power |
 | Generator | infinite-bus load angle, excitation lag, synchroscope phase integration |
 
-Steam properties are IAPWS-IF97 (`src/common/if97.js`, `src/common/steam.js`), the formulation of
-EtaPRO's "GP Steam"; `src/plant/etapro/gpsteam.js` exposes them in the templates' calls and units.
+Steam properties are IAPWS-IF97 (`src/common/if97.js`, `src/common/steam.js`);
+`src/plant/calc/steamus.js` exposes them in US customary units.
 
-The model also runs an **EtaPRO performance monitor** (`src/plant/model/performance.js`): the
-templates evaluated on the published measurements every 2 s, published as `PERF_*` tags and shown on
-the HMI Performance screen.
+The model also runs a **performance monitor** (`src/plant/model/performance.js`): the
+calculations evaluated on the published measurements every 2 s, published as `PERF_*` tags and shown
+on the HMI Performance screen.
 
 ## Extending
 

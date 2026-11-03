@@ -13,7 +13,7 @@ export const DES = Object.freeze({
   RPM: 3600,
   INERTIA: 40600, // kg m2, turbine-generator train (H ~ 3.5 s at 3600 rpm)
 
-  Q_FUEL: 1620, // MW fuel heat input (LHV) at MCR - EtaPRO design heat balance (design.js)
+  Q_FUEL: 1620, // MW fuel heat input (LHV) at MCR - design heat balance (design.js)
   GAS_LHV: 49, // MJ/kg natural gas (lower heating value)
   GAS_FLOW_FULL: 33.06, // kg/s natural gas at MCR (119 t/h)
   GFCV_K: 16.7, // kg/s per MPa(a) supply pressure at 100 % gas control valve (choked)

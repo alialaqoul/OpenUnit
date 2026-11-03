@@ -219,7 +219,7 @@ export function buildPlantMap() {
   m.ir('APH_O2_OUT', '%', 'Flue gas O2 after the air heater', { dp: 2 });
   m.ir('AFT', 'degC', 'Adiabatic flame temperature (calculated)', { dp: 0 });
 
-  // EtaPRO performance calculations (templates evaluated on the measurements)
+  // performance calculations (evaluated on the measurements)
   for (const [tag, unit, desc, dp] of PERF_TAGS) m.ir(tag, unit, desc, { dp });
 
   // ---------------------------------------------------------------- inputs (DI)

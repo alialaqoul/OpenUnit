@@ -4,7 +4,7 @@ import { ELEVS } from '../../maps/plant.js';
 import { DES } from './constants.js';
 import { defaultState } from './PlantModel.js';
 import { design, fuelAnalysis, HEATERS, SPEC_HUM, stodolaPin } from './design.js';
-import { combustion as CB } from '../etapro/index.js';
+import { combustion as CB } from '../calc/index.js';
 
 const P_ATM = st.P_ATM;
 
@@ -140,7 +140,7 @@ export function fsnlState() {
 }
 
 /**
- * Approximate steady state at a fraction L of MCR from the EtaPRO design heat balance (design.js)
+ * Approximate steady state at a fraction L of MCR from the design heat balance (design.js)
  * scaled to the load; the controllers settle the remainder.
  */
 export function loadState(L) {

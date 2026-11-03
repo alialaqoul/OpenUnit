@@ -2,9 +2,9 @@ import { svgRoot, pipe, txt, title, vbox, turbine, hx, pump, panelBox } from '..
 import { kv, attachControls, panel, split } from '../ui.js';
 
 /**
- * Heat cycle and EtaPRO performance screen: the regenerative feedwater train with the
- * extraction conditions, and the performance calculation results (EtaPRO templates
- * evaluated on the plant measurements).
+ * Heat cycle and performance screen: the regenerative feedwater train with the
+ * extraction conditions, and the performance calculation results (evaluated on the plant
+ * measurements).
  */
 const LP = [
   ['LPH4', 700],
@@ -31,7 +31,7 @@ function heater(name, x, srcX, srcY) {
 
 function mimic() {
   const s = [];
-  s.push(title(20, 28, 'HEAT CYCLE & ETAPRO PERFORMANCE'));
+  s.push(title(20, 28, 'HEAT CYCLE & PERFORMANCE'));
   // turbines and steam path
   s.push(pipe([[20, 110], [120, 110]], 'steam', { flow: 'PLANT:STEAM_FLOW', th: 5 }), txt(20, 100, 'MAIN STEAM', 'lbl-s'));
   s.push(turbine(120, 70, 120, 40, 100, 'HP'));
@@ -67,7 +67,7 @@ function mimic() {
   s.push(vbox(30, 440, 'PLANT:FW_TEMP', { w: 52, dp: 1, label: 'Final FW', u: 'degC' }));
   s.push(vbox(376, 490, 'PLANT:BFP_DISCH_T', { w: 52, dp: 1, label: 'BFP out', u: '' }));
   s.push(vbox(1080, 470, 'PLANT:HW_TEMP', { w: 56, dp: 1, label: 'Hotwell', u: 'degC' }));
-  s.push(txt(150, 590, 'Extraction pressures bar(a) at the flange, temperatures degC; TTD from the flange saturation (template 2930).', 'lbl-s'));
+  s.push(txt(150, 590, 'Extraction pressures bar(a) at the flange, temperatures degC; TTD from the flange saturation.', 'lbl-s'));
 
   // performance summary boxes
   s.push(panelBox(20, 610, 380, 160, 'BOILER (loss method, HHV)'));
@@ -102,7 +102,7 @@ function side() {
     ),
     panel(
       'About',
-      `<p style="color:var(--muted);font-size:11px">The process model is built on the EtaPRO calculation templates (combustion, furnace, convective pass, air heater, turbine stage flow factors and efficiencies, Tsou feedwater heaters, HEI condenser). This screen runs the same templates as a performance monitor on the measurements, every 2 s.</p>`,
+      `<p style="color:var(--muted);font-size:11px">The process model is built on thermal performance calculations (combustion, furnace, convective pass, air heater, turbine stage flow factors and efficiencies, feedwater heaters, condenser). This screen runs the same calculations as a performance monitor on the measurements, every 2 s.</p>`,
     ),
   ].join('');
 }
