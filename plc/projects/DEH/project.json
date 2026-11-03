@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "name": "DEH - Turbine Control & Protection (DEH)",
+    "type": "plc-project"
+  },
+  "data": {
+    "pous": [],
+    "dataTypes": [],
+    "libraries": [],
+    "configuration": {
+      "resource": {
+        "tasks": [
+          {
+            "name": "MainTask",
+            "triggering": "Cyclic",
+            "interval": "T#50ms",
+            "priority": 1
+          }
+        ],
+        "instances": [
+          {
+            "name": "DEH",
+            "program": "DEH_MAIN",
+            "task": "MainTask"
+          }
+        ],
+        "globalVariables": []
+      }
+    }
+  }
+}

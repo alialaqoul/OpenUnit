@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+# instructor snapshots saved at runtime (built-in ICs 1-5 are versioned)
+config/ic/ic1[0-9].*.json
+config/ic/ic[2-9][0-9].*.json
+
+# OpenPLC Editor build output
+plc/projects/*/build/
+
+# simulator control logs
+logs/

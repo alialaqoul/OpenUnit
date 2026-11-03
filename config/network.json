@@ -1,0 +1,37 @@
+{
+  "_comment": "Network layout of the simulated DCS. Change 'host' to 0.0.0.0 to expose the Modbus servers on your LAN (e.g. for Modbus Poll / QModMaster).",
+  "bindHost": "127.0.0.1",
+  "nodes": {
+    "PLANT": { "host": "127.0.0.1", "port": 5020, "unitId": 1, "title": "Process Simulator / Field I/O" },
+    "CCS":   { "host": "127.0.0.1", "port": 5021, "unitId": 1, "title": "Unit Coordinated Control" },
+    "BMS":   { "host": "127.0.0.1", "port": 5022, "unitId": 1, "title": "Burner Management System" },
+    "CMB":   { "host": "127.0.0.1", "port": 5023, "unitId": 1, "title": "Combustion & Draft Control" },
+    "FWC":   { "host": "127.0.0.1", "port": 5024, "unitId": 1, "title": "Feedwater & Condensate Control" },
+    "STC":   { "host": "127.0.0.1", "port": 5025, "unitId": 1, "title": "Steam Temperature Control" },
+    "DEH":   { "host": "127.0.0.1", "port": 5026, "unitId": 1, "title": "Turbine Control & Protection (DEH)" },
+    "GEN":   { "host": "127.0.0.1", "port": 5027, "unitId": 1, "title": "Generator, Excitation & Synchronizing" },
+    "BOP":   { "host": "127.0.0.1", "port": 5028, "unitId": 1, "title": "Balance of Plant / Turbine Auxiliaries" }
+  },
+  "hmi": { "host": "127.0.0.1", "port": 8080, "pollMs": 500 },
+  "plant": { "tickMs": 50, "stepS": 0.05 },
+  "controllers": { "scanMs": 100, "requestTimeoutMs": 1000, "runtime": "node" },
+  "openplc": {
+    "_comment": "OpenPLC Runtime v3 soft-PLCs (controllers.runtime = openplc, or SIM_RUNTIME=openplc) in a dedicated WSL distribution created by OpenUnit.cmd install. Each PLC gets a loopback IP where OpenPLC Editor finds it on the standard ports (REST 8443, debugger Modbus 502); the relay forwards them to the instance ports.",
+    "wsl": { "distro": "OpenUnit-PLC", "home": "/opt/openplc/OpenPLC_v3", "instances": "/opt/openplc/plc" },
+    "user": "openplc",
+    "password": "openplc",
+    "cycleMs": 50,
+    "bridgeMs": 50,
+    "language": "fbd",
+    "nodes": {
+      "CCS": { "ip": "127.0.0.11", "modbusPort": 5121, "webPort": 8121, "apiPort": 8421, "controlPort": 43641 },
+      "BMS": { "ip": "127.0.0.12", "modbusPort": 5122, "webPort": 8122, "apiPort": 8422, "controlPort": 43642 },
+      "CMB": { "ip": "127.0.0.13", "modbusPort": 5123, "webPort": 8123, "apiPort": 8423, "controlPort": 43643 },
+      "FWC": { "ip": "127.0.0.14", "modbusPort": 5124, "webPort": 8124, "apiPort": 8424, "controlPort": 43644 },
+      "STC": { "ip": "127.0.0.15", "modbusPort": 5125, "webPort": 8125, "apiPort": 8425, "controlPort": 43645 },
+      "DEH": { "ip": "127.0.0.16", "modbusPort": 5126, "webPort": 8126, "apiPort": 8426, "controlPort": 43646 },
+      "GEN": { "ip": "127.0.0.17", "modbusPort": 5127, "webPort": 8127, "apiPort": 8427, "controlPort": 43647 },
+      "BOP": { "ip": "127.0.0.18", "modbusPort": 5128, "webPort": 8128, "apiPort": 8428, "controlPort": 43648 }
+    }
+  }
+}

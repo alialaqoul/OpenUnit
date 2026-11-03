@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "name": "STC - Steam Temperature Control",
+    "type": "plc-project"
+  },
+  "data": {
+    "pous": [],
+    "dataTypes": [],
+    "libraries": [],
+    "configuration": {
+      "resource": {
+        "tasks": [
+          {
+            "name": "MainTask",
+            "triggering": "Cyclic",
+            "interval": "T#50ms",
+            "priority": 1
+          }
+        ],
+        "instances": [
+          {
+            "name": "STC",
+            "program": "STC_MAIN",
+            "task": "MainTask"
+          }
+        ],
+        "globalVariables": []
+      }
+    }
+  }
+}

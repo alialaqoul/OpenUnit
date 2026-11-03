@@ -1,0 +1,43 @@
+{
+  "name": "openunit",
+  "version": "1.0.0",
+  "description": "OpenUnit - 700 MW subcritical steam power plant training simulator with distributed controllers, Modbus TCP data exchange and a high-performance web HMI",
+  "type": "module",
+  "main": "src/launcher.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/launcher.js",
+    "start:openplc": "node src/launcher.js --openplc",
+    "dev": "node --watch-path=src src/launcher.js",
+    "start:plant": "node src/plant/index.js",
+    "start:controller": "node src/controllers/index.js",
+    "start:hmi": "node src/hmi/server.js",
+    "build": "node scripts/build.js",
+    "docs:map": "node scripts/generate-modbus-map.js",
+    "plc:setup": "node scripts/plc-setup.js",
+    "plc:build": "node scripts/plc-build.js",
+    "plc:check": "node scripts/plc-check.js",
+    "plc:deploy": "node scripts/plc-deploy.js",
+    "plc:editor": "node scripts/plc-editor.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "power-plant",
+    "simulator",
+    "modbus",
+    "scada",
+    "hmi",
+    "dcs"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0",
+    "vitest": "^5.0.5"
+  }
+}
